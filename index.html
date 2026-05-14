@@ -29,12 +29,33 @@
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: #0d0f18; }
     ::-webkit-scrollbar-thumb { background: #252836; border-radius: 2px; }
+
+    /* Desktop layout */
+    @media (min-width: 768px) {
+      .btl-outer { max-width: 1100px !important; padding-bottom: 0 !important; }
+      .btl-header { padding: 18px 32px 16px !important; }
+      .btl-header-title { font-size: 20px !important; }
+      .btl-header-sub { font-size: 12px !important; }
+      .btl-header-net { font-size: 22px !important; }
+      .btl-body { display: flex !important; gap: 24px; padding: 24px 32px 0 !important; align-items: flex-start; }
+      .btl-left { flex: 0 0 400px; }
+      .btl-right { flex: 1; min-width: 0; }
+      .btl-bottom-nav { display: none !important; }
+      .btl-desktop-nav { display: flex !important; }
+      .btl-calc-btn { display: none !important; }
+    }
+    @media (max-width: 767px) {
+      .btl-desktop-nav { display: none !important; }
+    }
+    @media (min-width: 768px) {
+      .btl-mobile-net { display: none !important; }
+    }
   </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useMemo } = React;
+    const { useState, useMemo, useEffect } = React;
 
     const C = {
       bg: "#0d0f18", card: "#161923", border: "#252836",
@@ -220,6 +241,12 @@
 
     function App() {
       const [tab, setTab] = useState(0);
+      const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+      useEffect(() => {
+        const handler = () => setIsDesktop(window.innerWidth >= 768);
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+      }, []);
       const [rentPCM, setRentPCM] = useState(1500);
       const [propVal, setPropVal] = useState(200000);
       const [otherIncome, setOtherIncome] = useState(30000);
@@ -315,27 +342,47 @@
       const profitable = r.netCF > 0;
 
       return (
-        <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", color: C.text, paddingBottom: 72, maxWidth: 480, margin: "0 auto" }}>
+        <div className="btl-outer" style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", color: C.text, paddingBottom: 72, maxWidth: 480, margin: "0 auto" }}>
 
           {/* Header */}
-          <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: "14px 16px 12px" }}>
+          <div className="btl-header" style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: "14px 16px 12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 22 }}>🏠</span>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.accent, lineHeight: 1.2 }}>BTL Tax Calculator</div>
-                <div style={{ fontSize: 10, color: C.muted }}>UK 2025/26 · Section 24 · Optimisation</div>
+                <div className="btl-header-title" style={{ fontSize: 16, fontWeight: 700, color: C.accent, lineHeight: 1.2 }}>BTL Tax Calculator</div>
+                <div className="btl-header-sub" style={{ fontSize: 10, color: C.muted }}>UK 2025/26 · Section 24 · Optimisation</div>
               </div>
-              <div style={{ marginLeft: "auto", textAlign: "right" }}>
+              {/* Desktop tab nav in header */}
+              <div className="btl-desktop-nav" style={{ marginLeft: "auto", display: "none", gap: 8, alignItems: "center" }}>
+                {[{ icon: "📋", label: "Inputs", i: 0 }, { icon: "📊", label: "Results", i: 1 }, { icon: "🎯", label: "Optimise", i: 2 }].map((n) => (
+                  <button key={n.i} onClick={() => setTab(n.i)} style={{
+                    background: tab === n.i ? C.accent + "22" : "transparent",
+                    border: tab === n.i ? `1.5px solid ${C.accent}` : `1.5px solid ${C.border}`,
+                    borderRadius: 8, padding: "7px 16px", cursor: "pointer",
+                    color: tab === n.i ? C.accent : C.muted, fontSize: 13, fontWeight: 700,
+                    display: "flex", alignItems: "center", gap: 6
+                  }}>
+                    <span>{n.icon}</span>{n.label}
+                  </button>
+                ))}
+                <div style={{ marginLeft: 16, textAlign: "right" }}>
+                  <div style={{ fontSize: 10, color: C.muted }}>NET/MONTH</div>
+                  <div className="btl-header-net" style={{ fontSize: 18, fontWeight: 800, fontFamily: "monospace", color: profitable ? C.green : C.red }}>{fmt(r.netPCM)}</div>
+                </div>
+              </div>
+              {/* Mobile net/month (hidden on desktop) */}
+              <div className="btl-mobile-net" style={{ marginLeft: "auto", textAlign: "right" }}>
                 <div style={{ fontSize: 10, color: C.muted }}>NET/MONTH</div>
                 <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "monospace", color: profitable ? C.green : C.red }}>{fmt(r.netPCM)}</div>
               </div>
             </div>
           </div>
 
-          <div style={{ padding: "14px 14px 0" }}>
+          <div className="btl-body" style={{ padding: "14px 14px 0" }}>
+            <div className="btl-left">
 
-            {/* INPUTS */}
-            {tab === 0 && (
+            {/* INPUTS — always visible on desktop left panel */}
+            {(tab === 0 || isDesktop) && (
               <div>
                 <Card title="Property & Income" icon="🏘">
                   <Field label="Monthly Rent" value={rentPCM} onChange={setRentPCM} suf="per month" />
@@ -379,14 +426,16 @@
                   )}
                 </Card>
 
-                <button onClick={() => setTab(1)} style={{ width: "100%", background: C.accent, color: "#000", border: "none", borderRadius: 10, padding: 15, fontSize: 16, fontWeight: 700, cursor: "pointer", marginBottom: 4 }}>
+                <button className="btl-calc-btn" onClick={() => setTab(1)} style={{ width: "100%", background: C.accent, color: "#000", border: "none", borderRadius: 10, padding: 15, fontSize: 16, fontWeight: 700, cursor: "pointer", marginBottom: 4 }}>
                   Calculate Results →
                 </button>
               </div>
             )}
+            </div>{/* end btl-left */}
 
+            <div className="btl-right">
             {/* RESULTS */}
-            {tab === 1 && (
+            {(tab === 1 || (isDesktop && tab !== 2)) && (
               <div>
                 <div style={{ background: profitable ? "#0e2419" : "#2a0e0e", border: `1.5px solid ${profitable ? C.green : C.red}60`, borderRadius: 14, padding: 16, marginBottom: 12, textAlign: "center" }}>
                   <div style={{ fontSize: 11, color: C.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.07em" }}>Monthly Net Cashflow After Tax</div>
@@ -450,7 +499,7 @@
             )}
 
             {/* OPTIMISE */}
-            {tab === 2 && (
+            {(tab === 2) && (
               <div>
                 <Card title="Health Check" icon="📊" gold>
                   {[
@@ -529,6 +578,9 @@
               </div>
             )}
           </div>
+
+            </div>{/* end btl-right */}
+          </div>{/* end btl-body */}
 
           {/* Bottom Nav */}
           <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: C.card, borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 100 }}>
