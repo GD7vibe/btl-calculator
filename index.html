@@ -1,478 +1,529 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0d0f18" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#0d0f18"/>
   <title>UK Buy-to-Let Tax Calculator 2025/26</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background: #0d0f18; color: #eaeaea; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; min-height: 100%; }
-    input[type=text] { -webkit-appearance: none; -moz-appearance: none; appearance: none; box-shadow: none !important; -webkit-box-shadow: none !important; }
-    input[type=text]:focus { outline: none; box-shadow: none !important; -webkit-box-shadow: none !important; }
-    button { -webkit-appearance: none; font-family: inherit; }
-    * { -webkit-tap-highlight-color: transparent; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #0d0f18; }
-    ::-webkit-scrollbar-thumb { background: #252836; border-radius: 2px; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{background:#0d0f18;color:#eaeaea;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100%}
+    input{-webkit-appearance:none;-moz-appearance:none;appearance:none;box-shadow:none!important;-webkit-box-shadow:none!important;outline:none;font-family:inherit}
+    input:focus{box-shadow:none!important;-webkit-box-shadow:none!important}
+    button{-webkit-appearance:none;font-family:inherit;cursor:pointer}
+    *{-webkit-tap-highlight-color:transparent}
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-track{background:#0d0f18}
+    ::-webkit-scrollbar-thumb{background:#252836;border-radius:2px}
+
+    /* ── Layout ── */
+    #app{min-height:100vh}
+    .header{background:#161923;border-bottom:1px solid #252836;padding:14px 16px 12px}
+    .header-inner{display:flex;align-items:center;gap:10;max-width:1200px;margin:0 auto}
+    .header-logo{font-size:22px}
+    .header-title{font-size:16px;font-weight:700;color:#c9a84c;line-height:1.2}
+    .header-sub{font-size:10px;color:#7a7f96}
+    .header-net-label{font-size:10px;color:#7a7f96;text-align:right}
+    .header-net-val{font-size:18px;font-weight:800;font-family:monospace;text-align:right}
+    .header-tabs{display:none;gap:8px;align-items:center;margin-left:auto}
+    .header-right{margin-left:auto;text-align:right}
+
+    .body{padding:14px 14px 0}
+    .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#161923;border-top:1px solid #252836;display:flex;z-index:100}
+    .nav-btn{flex:1;background:transparent;border:none;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px}
+    .nav-icon{font-size:20px}
+    .nav-label{font-size:10px;font-weight:400}
+    .nav-bar{width:24px;height:2px;background:#c9a84c;border-radius:2px;display:none}
+
+    /* ── Desktop ── */
+    @media(min-width:800px){
+      .header{padding:16px 32px}
+      .header-logo{font-size:26px}
+      .header-title{font-size:20px}
+      .header-sub{font-size:12px}
+      .header-tabs{display:flex}
+      .header-right{display:none}
+      .desktop-net{display:block!important}
+      .body{max-width:1200px;margin:0 auto;padding:24px 32px 32px;display:flex;gap:24;align-items:flex-start}
+      .col-left{flex:0 0 420px;min-width:0}
+      .col-right{flex:1;min-width:0}
+      .bottom-nav{display:none}
+      .mobile-only{display:none!important}
+      #page-inputs{display:block!important}
+    }
+    @media(max-width:799px){
+      .col-left,.col-right{width:100%}
+      .desktop-net{display:none!important}
+      .desktop-only{display:none!important}
+    }
+
+    /* ── Components ── */
+    .card{background:#161923;border:1.5px solid #252836;border-radius:12px;padding:14px;margin-bottom:12px}
+    .card.gold{border-color:#7a6030}
+    .card-title{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+    .card-title-icon{font-size:14px}
+    .card-title-text{color:#5b8dee;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em}
+    .card-title-text.gold{color:#c9a84c}
+
+    .field{margin-bottom:12px}
+    .field-label{display:block;color:#7a7f96;font-size:11px;margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+    .field-wrap{display:flex;align-items:stretch;background:#0f1120;border:1.5px solid #252836;border-radius:8px;overflow:hidden;transition:border-color .15s}
+    .field-wrap.focused{border-color:#c9a84c}
+    .field-pre{display:flex;align-items:center;padding:0 12px;color:#c9a84c;font-weight:bold;font-size:15px;border-right:1px solid #252836;background:#0d0f18;min-width:36px;justify-content:center;flex-shrink:0}
+    .field-input{flex:1;background:transparent;border:none;outline:none;color:#eaeaea;padding:13px 12px;font-size:16px;font-family:monospace;min-width:0;caret-color:#c9a84c}
+    .field-suf{display:flex;align-items:center;padding:0 10px;color:#7a7f96;font-size:12px;border-left:1px solid #252836;white-space:nowrap;flex-shrink:0}
+    .field-note{color:#7a7f96;font-size:11px;margin-top:4px;line-height:1.4}
+
+    .picker{margin-bottom:12px}
+    .picker-label{display:block;color:#7a7f96;font-size:11px;margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+    .picker-btns{display:flex;gap:6px}
+    .picker-btn{flex:1;padding:11px 6px;font-size:12px;font-weight:bold;border-radius:8px;border:1.5px solid #252836;background:#0f1120;color:#7a7f96;transition:all .15s}
+    .picker-btn.active{border-color:#c9a84c;background:#c9a84c22;color:#c9a84c}
+
+    .tip{border-radius:8px;padding:10px 11px;margin-bottom:8px;display:flex;gap:8px;align-items:flex-start}
+    .tip-icon{font-size:12px;margin-top:1px;flex-shrink:0}
+    .tip-text{font-size:12px;line-height:1.55;color:#eaeaea}
+    .tip.info{background:#5b8dee12;border:1px solid #5b8dee40}.tip.info .tip-icon{color:#5b8dee}
+    .tip.warn{background:#e08a2a12;border:1px solid #e08a2a40}.tip.warn .tip-icon{color:#e08a2a}
+    .tip.good{background:#3dba8212;border:1px solid #3dba8240}.tip.good .tip-icon{color:#3dba82}
+
+    .line{display:flex;justify-content:space-between;align-items:center;padding:3px 0}
+    .line.indent{padding-left:10px}
+    .line-label{font-size:12px;font-weight:400;padding-right:8px;line-height:1.3;color:#eaeaea}
+    .line-label.muted{color:#7a7f96}
+    .line-label.bold{font-size:14px;font-weight:700}
+    .line-val{font-size:12px;font-weight:400;font-family:monospace;white-space:nowrap;color:#eaeaea}
+    .line-val.bold{font-size:14px;font-weight:700}
+    .line-val.green{color:#3dba82}.line-val.red{color:#e05555}.line-val.accent{color:#c9a84c}
+    .hr{border-top:1px solid #252836;margin:7px 0}
+
+    .chip{border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;text-transform:uppercase}
+    .chip.green{background:#3dba8220;color:#3dba82;border:1px solid #3dba8250}
+    .chip.red{background:#e0555520;color:#e05555;border:1px solid #e0555550}
+    .chip.amber{background:#e08a2a20;color:#e08a2a;border:1px solid #e08a2a50}
+    .chip.accent{background:#c9a84c20;color:#c9a84c;border:1px solid #c9a84c50}
+
+    .acc{border:1px solid #252836;border-radius:8px;margin-bottom:7px;overflow:hidden}
+    .acc-hdr{width:100%;background:transparent;border:none;padding:12px;display:flex;justify-content:space-between;align-items:center}
+    .acc-hdr.open{background:#c9a84c15}
+    .acc-hdr-text{font-size:13px;font-weight:600;text-align:left;color:#eaeaea}
+    .acc-hdr-text.open{color:#c9a84c}
+    .acc-num{color:#7a6030;margin-right:6px;font-size:10px}
+    .acc-arrow{color:#7a7f96;font-size:13px;margin-left:8px;flex-shrink:0}
+    .acc-body{padding:0 12px 12px}
+
+    .hero{border-radius:14px;padding:16px;margin-bottom:12px;text-align:center}
+    .hero-label{font-size:11px;color:#7a7f96;margin-bottom:4px;text-transform:uppercase;letter-spacing:.07em}
+    .hero-val{font-size:42px;font-weight:800;font-family:monospace;line-height:1}
+    .hero-sub{font-size:12px;color:#7a7f96;margin-top:6px}
+    .hero-chips{margin-top:10px;display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+
+    .tab-btn{background:transparent;border:1.5px solid #252836;border-radius:8px;padding:8px 20px;color:#7a7f96;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;transition:all .15s}
+    .tab-btn.active{background:#c9a84c22;border-color:#c9a84c;color:#c9a84c}
+
+    .calc-btn{width:100%;background:#c9a84c;color:#000;border:none;border-radius:10px;padding:15px;font-size:16px;font-weight:700;margin-bottom:4px}
+
+    .score-row{display:flex;align-items:center;gap:10px;padding:7px 0}
+    .score-icon{font-size:16px;flex-shrink:0}
+    .score-label{font-size:13px}
+
+    .be-box{background:#0f1120;border-radius:10px;padding:14px;text-align:center;margin-bottom:8px}
+    .be-label{font-size:10px;color:#7a7f96;margin-bottom:4px;text-transform:uppercase}
+    .be-val{font-size:34px;font-weight:800;color:#c9a84c;font-family:monospace}
+    .be-mo{font-size:13px;color:#7a7f96}
+    .be-pct{font-size:12px;color:#7a7f96;margin-top:4px}
+
+    .disclaimer{background:#161923;border:1px solid #252836;border-radius:10px;padding:12px;font-size:10px;color:#7a7f96;line-height:1.6;margin-bottom:4px}
+    .disclaimer strong{color:#7a6030}
+
+    .desktop-net-box{background:#0e2419;border:1px solid #3dba8250;border-radius:10px;padding:8px 18px;text-align:center;margin-left:16px}
+    .desktop-net-box.loss{background:#2a0e0e;border-color:#e0555550}
+    .desktop-net-label{font-size:10px;color:#7a7f96;text-transform:uppercase;letter-spacing:.06em}
+    .desktop-net-val{font-size:22px;font-weight:800;font-family:monospace}
   </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useMemo, useEffect } = React;
-
-const C = {
-  bg:"#0d0f18", card:"#161923", border:"#252836",
-  accent:"#c9a84c", accentDim:"#7a6030",
-  red:"#e05555", green:"#3dba82", blue:"#5b8dee", amber:"#e08a2a",
-  text:"#eaeaea", muted:"#7a7f96", inputBg:"#0f1120"
+<div id="app"></div>
+<script>
+// ── State ──
+const state = {
+  tab:0,
+  rentPCM:1500, propVal:200000, otherIncome:30000,
+  mortPCM:800, mortRate:5.5, mortType:"io", repayInt:0,
+  structure:"personal",
+  agentPct:10, insurePCM:40, repairsPA:600, groundPA:0, otherExpPA:200,
+  acc:{} // accordion open states
 };
 
-const fmt = n => n < 0
-  ? `-£${Math.abs(n).toLocaleString("en-GB",{minimumFractionDigits:0,maximumFractionDigits:0})}`
-  : `£${n.toLocaleString("en-GB",{minimumFractionDigits:0,maximumFractionDigits:0})}`;
-const pct = n => `${n.toFixed(1)}%`;
+// ── Tax helpers ──
+function calcTax(income){
+  const pa=income>100000?Math.max(0,12570-(income-100000)/2):12570;
+  const t=Math.max(0,income-pa);
+  if(t<=37700)return t*.2;
+  if(t<=125140)return 37700*.2+(t-37700)*.4;
+  return 37700*.2+(125140-37700)*.4+(t-125140)*.45;
+}
+function margRate(inc){
+  if(inc<=12570)return 0;if(inc<=50270)return 20;
+  if(inc<=100000)return 40;if(inc<=125140)return 60;return 45;
+}
+function fmt(n){
+  return n<0?`-£${Math.abs(n).toLocaleString("en-GB",{minimumFractionDigits:0,maximumFractionDigits:0})}`:
+    `£${n.toLocaleString("en-GB",{minimumFractionDigits:0,maximumFractionDigits:0})}`;
+}
+function pct(n){return`${n.toFixed(1)}%`}
 
-/* ── Field ── */
-function Field({ label, value, onChange, pre="£", suf, note }) {
-  const [display, setDisplay] = useState(value === 0 ? "" : String(value));
-  const [focused, setFocused] = useState(false);
+// ── Calculate results ──
+function calc(){
+  const {rentPCM,propVal,otherIncome,mortPCM,mortRate,mortType,repayInt,structure,agentPct,insurePCM,repairsPA,groundPA,otherExpPA}=state;
+  const rentA=rentPCM*12,mortA=mortPCM*12;
+  const interestA=mortType==="io"?mortA:repayInt;
+  const agentFees=rentA*(agentPct/100),insure=insurePCM*12;
+  const otherExp=repairsPA+groundPA+otherExpPA;
+  const totalExp=agentFees+insure+otherExp;
+  let taxableProfit,taxCredit,tax,corpTax;
+  if(structure==="ltd"){
+    taxableProfit=rentA-totalExp-interestA;
+    corpTax=taxableProfit<=0?0:taxableProfit<=50000?taxableProfit*.19:taxableProfit<=250000?taxableProfit*.25-(250000-taxableProfit)*(3/200):taxableProfit*.25;
+    taxCredit=0;tax=corpTax;
+  }else{
+    taxableProfit=rentA-totalExp;
+    const pa=(otherIncome+taxableProfit)>100000?Math.max(0,12570-((otherIncome+taxableProfit)-100000)/2):12570;
+    const abovePA=Math.max(0,otherIncome+taxableProfit-pa);
+    const creditBase=Math.min(interestA,Math.max(0,taxableProfit),abovePA);
+    taxCredit=creditBase*.2;
+    const rentalTax=Math.max(0,calcTax(otherIncome+taxableProfit)-calcTax(otherIncome));
+    tax=Math.max(0,rentalTax-taxCredit);corpTax=0;
+  }
+  const grossCF=rentA-mortA-totalExp,netCF=grossCF-tax,netPCM=netCF/12;
+  const grossYield=(rentA/propVal)*100,netYield=(netCF/propVal)*100;
+  const totalIncome=structure==="ltd"?otherIncome:otherIncome+taxableProfit;
+  const mr=margRate(totalIncome);
+  let s24Penalty=0;
+  if(structure==="personal"){
+    const oldP=Math.max(0,rentA-totalExp-interestA);
+    s24Penalty=tax-Math.max(0,calcTax(otherIncome+oldP)-calcTax(otherIncome));
+  }
+  let beMortPCM=0;
+  for(let m=0;m<=rentPCM;m+=10){
+    const mA=m*12,intA2=mortType==="io"?mA:propVal*(mortRate/100);let t2;
+    if(structure==="ltd"){const p2=rentA-totalExp-intA2;t2=p2<=0?0:p2*.19;}
+    else{const p2=rentA-totalExp;const pa2=(otherIncome+p2)>100000?Math.max(0,12570-((otherIncome+p2)-100000)/2):12570;const ab2=Math.max(0,otherIncome+p2-pa2);const cb2=Math.min(intA2,Math.max(0,p2),ab2);const rt2=Math.max(0,calcTax(otherIncome+p2)-calcTax(otherIncome));t2=Math.max(0,rt2-cb2*.2);}
+    if(rentA-mA-totalExp-t2>=0)beMortPCM=m;else break;
+  }
+  const beMortPct=rentPCM>0?(beMortPCM/rentPCM)*100:0;
+  let ltdSaving=null;
+  if(structure==="personal"){const lp=rentA-totalExp-interestA;const lc=lp<=0?0:lp<=50000?lp*.19:lp*.25;ltdSaving=(rentA-mortA-totalExp-lc)-netCF;}
+  return{rentA,mortA,interestA,agentFees,insure,otherExp,totalExp,taxableProfit,taxCredit,tax,corpTax,grossCF,netCF,netPCM,grossYield,netYield,marginalRate:mr,s24Penalty,beMortPCM,beMortPct,ltdSaving};
+}
 
-  const onFocus = e => {
-    setFocused(true);
-    setDisplay(value === 0 ? "" : String(value));
-    e.target.setSelectionRange(0, e.target.value.length);
-  };
-  const onInput = e => {
-    let v = e.target.value.replace(/[^0-9.]/g,"");
-    const d = v.indexOf(".");
-    if (d !== -1) v = v.slice(0,d+1) + v.slice(d+1).replace(/\./g,"");
-    if (v.length > 1 && v[0]==="0" && v[1]!==".") v = v.replace(/^0+/,"") || "0";
-    setDisplay(v);
-    const n = parseFloat(v);
-    if (!isNaN(n)) onChange(n);
-  };
-  const onBlur = () => {
-    setFocused(false);
-    const n = parseFloat(display);
-    const final = isNaN(n) ? 0 : n;
-    setDisplay(final === 0 ? "" : String(final));
-    onChange(final);
-  };
+// ── HTML builders ──
+function h(tag,attrs,inner){
+  const a=Object.entries(attrs||{}).map(([k,v])=>`${k}="${v}"`).join(" ");
+  return`<${tag}${a?" "+a:""}>${inner||""}</${tag}>`;
+}
 
-  return (
-    <div style={{marginBottom:12}}>
-      <label style={{display:"block",color:C.muted,fontSize:11,marginBottom:5,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:600}}>{label}</label>
-      <div style={{display:"flex",alignItems:"stretch",background:C.inputBg,border:`1.5px solid ${focused?C.accent:C.border}`,borderRadius:8,overflow:"hidden"}}>
-        {pre && <span style={{display:"flex",alignItems:"center",padding:"0 12px",color:C.accent,fontWeight:"bold",fontSize:15,borderRight:`1px solid ${C.border}`,background:"#0d0f18",minWidth:36,justifyContent:"center"}}>{pre}</span>}
-        <input type="text" inputMode="numeric" autoComplete="off" autoCorrect="off" spellCheck="false"
-          value={display} onFocus={onFocus} onChange={onInput} onBlur={onBlur} placeholder="0"
-          style={{flex:1,background:"transparent",border:"none",outline:"none",WebkitAppearance:"none",color:C.text,padding:"13px 12px",fontSize:16,fontFamily:"monospace",minWidth:0,caretColor:C.accent}} />
-        {suf && <span style={{display:"flex",alignItems:"center",padding:"0 10px",color:C.muted,fontSize:12,borderLeft:`1px solid ${C.border}`,whiteSpace:"nowrap"}}>{suf}</span>}
-      </div>
-      {note && <p style={{color:C.muted,fontSize:11,marginTop:4,lineHeight:1.4}}>{note}</p>}
+function field(id,label,value,pre,suf,note){
+  return`<div class="field">
+    <label class="field-label">${label}</label>
+    <div class="field-wrap" id="fw-${id}">
+      ${pre!==undefined?`<span class="field-pre">${pre}</span>`:""}
+      <input class="field-input" type="text" inputmode="numeric" autocomplete="off" id="fi-${id}" value="${value==="0"||value===0?"":value}" placeholder="0"
+        onfocus="fieldFocus('${id}',this)" onblur="fieldBlur('${id}',this)" oninput="fieldInput('${id}',this)">
+      ${suf?`<span class="field-suf">${suf}</span>`:""}
     </div>
-  );
+    ${note?`<p class="field-note">${note}</p>`:""}
+  </div>`;
 }
 
-/* ── Picker ── */
-function Picker({ label, value, onChange, options }) {
-  return (
-    <div style={{marginBottom:12}}>
-      <label style={{display:"block",color:C.muted,fontSize:11,marginBottom:5,textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:600}}>{label}</label>
-      <div style={{display:"flex",gap:6}}>
-        {options.map(o => (
-          <button key={o.value} onClick={()=>onChange(o.value)} style={{flex:1,padding:"11px 6px",fontSize:12,fontWeight:"bold",borderRadius:8,cursor:"pointer",border:value===o.value?`1.5px solid ${C.accent}`:`1.5px solid ${C.border}`,background:value===o.value?C.accent+"22":C.inputBg,color:value===o.value?C.accent:C.muted}}>
-            {o.label}
-          </button>
-        ))}
-      </div>
+function picker(id,label,value,options){
+  return`<div class="picker">
+    <label class="picker-label">${label}</label>
+    <div class="picker-btns">
+      ${options.map(o=>`<button class="picker-btn${value===o.v?" active":""}" onclick="pick('${id}','${o.v}')">${o.l}</button>`).join("")}
     </div>
-  );
+  </div>`;
 }
 
-/* ── Card ── */
-function Card({ title, icon, children, gold }) {
-  return (
-    <div style={{background:C.card,border:`1.5px solid ${gold?C.accentDim:C.border}`,borderRadius:12,padding:14,marginBottom:12}}>
-      {title && (
-        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
-          {icon && <span style={{fontSize:14}}>{icon}</span>}
-          <span style={{color:gold?C.accent:C.blue,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.07em"}}>{title}</span>
-        </div>
-      )}
-      {children}
-    </div>
-  );
+function card(title,icon,inner,gold){
+  return`<div class="card${gold?" gold":""}">
+    ${title?`<div class="card-title"><span class="card-title-icon">${icon}</span><span class="card-title-text${gold?" gold":""}">${title}</span></div>`:""}
+    ${inner}
+  </div>`;
 }
 
-/* ── Line ── */
-function Line({ label, value, color, bold, indent, hr }) {
-  const vc = color==="green"?C.green:color==="red"?C.red:color==="accent"?C.accent:C.text;
-  return (
-    <>
-      {hr && <div style={{borderTop:`1px solid ${C.border}`,margin:"7px 0"}}/>}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",paddingLeft:indent?10:0}}>
-        <span style={{color:indent?C.muted:C.text,fontSize:bold?14:12,fontWeight:bold?700:400,paddingRight:8,lineHeight:1.3}}>{label}</span>
-        <span style={{color:vc,fontSize:bold?14:12,fontWeight:bold?700:400,fontFamily:"monospace",whiteSpace:"nowrap"}}>{value}</span>
-      </div>
-    </>
-  );
+function tip(text,type){
+  const icon=type==="warn"?"⚠":type==="good"?"✓":"ℹ";
+  return`<div class="tip ${type||"info"}"><span class="tip-icon">${icon}</span><span class="tip-text">${text}</span></div>`;
 }
 
-/* ── Chip ── */
-function Chip({ text, color }) {
-  const c = color==="green"?C.green:color==="red"?C.red:color==="amber"?C.amber:C.accent;
-  return <span style={{background:c+"20",color:c,border:`1px solid ${c}50`,borderRadius:5,padding:"3px 8px",fontSize:10,fontWeight:700,textTransform:"uppercase"}}>{text}</span>;
+function line(label,value,color,bold,indent,hr){
+  return`${hr?`<div class="hr"></div>`:""}
+  <div class="line${indent?" indent":""}">
+    <span class="line-label${indent?" muted":""}${bold?" bold":""}">${label}</span>
+    <span class="line-val${bold?" bold":""}${color?" "+color:""}">${value}</span>
+  </div>`;
 }
 
-/* ── Tip ── */
-function Tip({ text, type }) {
-  const t = type||"info";
-  const c = t==="warn"?C.amber:t==="good"?C.green:C.blue;
-  const icon = t==="warn"?"⚠":t==="good"?"✓":"ℹ";
-  return (
-    <div style={{background:c+"12",border:`1px solid ${c}40`,borderRadius:8,padding:"10px 11px",marginBottom:8,display:"flex",gap:8,alignItems:"flex-start"}}>
-      <span style={{color:c,fontSize:12,marginTop:1,flexShrink:0}}>{icon}</span>
-      <span style={{color:C.text,fontSize:12,lineHeight:1.55}}>{text}</span>
-    </div>
-  );
+function chip(text,color){return`<span class="chip ${color}">${text}</span>`}
+
+function acc(id,num,title,inner){
+  const open=state.acc[id];
+  return`<div class="acc">
+    <button class="acc-hdr${open?" open":""}" onclick="toggleAcc('${id}')">
+      <span class="acc-hdr-text${open?" open":""}"><span class="acc-num">${num}</span>${title}</span>
+      <span class="acc-arrow">${open?"▲":"▼"}</span>
+    </button>
+    ${open?`<div class="acc-body">${inner}</div>`:""}
+  </div>`;
 }
 
-/* ── Accordion ── */
-function Acc({ num, title, children }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{border:`1px solid ${C.border}`,borderRadius:8,marginBottom:7,overflow:"hidden"}}>
-      <button onClick={()=>setOpen(!open)} style={{width:"100%",background:open?C.accent+"15":"transparent",border:"none",padding:"12px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
-        <span style={{color:open?C.accent:C.text,fontSize:13,fontWeight:600,textAlign:"left"}}>
-          <span style={{color:C.accentDim,marginRight:6,fontSize:10}}>{num}</span>{title}
-        </span>
-        <span style={{color:C.muted,fontSize:13,marginLeft:8,flexShrink:0}}>{open?"▲":"▼"}</span>
-      </button>
-      {open && <div style={{padding:"0 12px 12px"}}>{children}</div>}
-    </div>
-  );
+// ── Panels ──
+function inputsHTML(){
+  const s=state;
+  return`
+    ${card("Property & Income","🏘",
+      field("rentPCM","Monthly Rent",s.rentPCM,"£","per month")+
+      field("propVal","Property Value",s.propVal,"£","")+
+      field("otherIncome","Other Annual Income",s.otherIncome,"£","","Salary, pension etc — determines your marginal tax rate")
+    )}
+    ${card("Mortgage","🏦",
+      field("mortPCM","Monthly Mortgage Payment",s.mortPCM,"£","per month")+
+      field("mortRate","Interest Rate",s.mortRate,"%","per annum")+
+      picker("mortType","Mortgage Type",s.mortType,[{v:"io",l:"Interest Only"},{v:"repay",l:"Repayment"}])+
+      (s.mortType==="repay"?
+        field("repayInt","Annual Interest Paid",s.repayInt,"£","per year","Exact figure from your annual mortgage statement — only interest qualifies for Section 24 relief.")+
+        tip("This figure reduces each year as your capital balance falls. Update it annually before filing self-assessment.","warn")
+      :"")
+    )}
+    ${card("Allowable Expenses","📋",
+      field("agentPct","Letting Agent Fees",s.agentPct,"%","of rent","Fully deductible from taxable profit")+
+      field("insurePCM","Landlord Insurance",s.insurePCM,"£","per month")+
+      field("repairsPA","Repairs & Maintenance",s.repairsPA,"£","per year","Like-for-like repairs only — improvements are not deductible")+
+      field("groundPA","Ground Rent / Service Charge",s.groundPA,"£","per year")+
+      field("otherExpPA","Other Expenses",s.otherExpPA,"£","per year","Accountancy, mileage, advertising")
+    )}
+    ${card("Ownership Structure","🏛",
+      picker("structure","Property held in",s.structure,[{v:"personal",l:"Personal Name"},{v:"ltd",l:"Ltd Company"}])+
+      (s.structure==="personal"?tip("Section 24 applies — you only get a 20% tax credit on mortgage interest. At 40% tax you're losing half your interest relief to HMRC.","warn"):"")+
+      (s.structure==="ltd"?tip("Companies deduct 100% of mortgage interest before tax. Corp tax 19–25%. Extracting profit as dividends adds further personal tax.","good"):"")
+    )}`;
 }
 
-/* ── Tax helpers ── */
-function calcTax(income) {
-  const pa = income > 100000 ? Math.max(0, 12570-(income-100000)/2) : 12570;
-  const t = Math.max(0, income-pa);
-  if (t <= 37700) return t*0.20;
-  if (t <= 125140) return 37700*0.20+(t-37700)*0.40;
-  return 37700*0.20+(125140-37700)*0.40+(t-125140)*0.45;
-}
-function margRate(inc) {
-  if (inc<=12570) return 0;
-  if (inc<=50270) return 20;
-  if (inc<=100000) return 40;
-  if (inc<=125140) return 60;
-  return 45;
-}
-
-/* ── Inputs Panel ── */
-function InputsPanel({ state, set }) {
-  const { rentPCM,propVal,otherIncome,mortPCM,mortRate,mortType,repayInt,structure,agentPct,insurePCM,repairsPA,groundPA,otherExpPA } = state;
-  return (
-    <div>
-      <Card title="Property & Income" icon="🏘">
-        <Field label="Monthly Rent" value={rentPCM} onChange={v=>set("rentPCM",v)} suf="per month"/>
-        <Field label="Property Value" value={propVal} onChange={v=>set("propVal",v)}/>
-        <Field label="Other Annual Income" value={otherIncome} onChange={v=>set("otherIncome",v)} note="Salary, pension etc — determines your marginal tax rate"/>
-      </Card>
-      <Card title="Mortgage" icon="🏦">
-        <Field label="Monthly Mortgage Payment" value={mortPCM} onChange={v=>set("mortPCM",v)} suf="per month"/>
-        <Field label="Interest Rate" value={mortRate} onChange={v=>set("mortRate",v)} pre="%" suf="per annum"/>
-        <Picker label="Mortgage Type" value={mortType} onChange={v=>set("mortType",v)} options={[{value:"io",label:"Interest Only"},{value:"repay",label:"Repayment"}]}/>
-        {mortType==="repay" && <>
-          <Field label="Annual Interest Paid" value={repayInt} onChange={v=>set("repayInt",v)} suf="per year" note="Exact figure from your annual mortgage statement — only interest qualifies for Section 24 relief."/>
-          <Tip text="This figure reduces each year as your capital balance falls. Update it annually before filing self-assessment." type="warn"/>
-        </>}
-      </Card>
-      <Card title="Allowable Expenses" icon="📋">
-        <Field label="Letting Agent Fees" value={agentPct} onChange={v=>set("agentPct",v)} pre="%" suf="of rent" note="Fully deductible from taxable profit"/>
-        <Field label="Landlord Insurance" value={insurePCM} onChange={v=>set("insurePCM",v)} suf="per month"/>
-        <Field label="Repairs & Maintenance" value={repairsPA} onChange={v=>set("repairsPA",v)} suf="per year" note="Like-for-like repairs only — improvements are not deductible"/>
-        <Field label="Ground Rent / Service Charge" value={groundPA} onChange={v=>set("groundPA",v)} suf="per year"/>
-        <Field label="Other Expenses" value={otherExpPA} onChange={v=>set("otherExpPA",v)} suf="per year" note="Accountancy, mileage, advertising"/>
-      </Card>
-      <Card title="Ownership Structure" icon="🏛">
-        <Picker label="Property held in" value={structure} onChange={v=>set("structure",v)} options={[{value:"personal",label:"Personal Name"},{value:"ltd",label:"Ltd Company"}]}/>
-        {structure==="personal" && <Tip text="Section 24 applies — you only get a 20% tax credit on mortgage interest. At 40% tax you're losing half your interest relief to HMRC." type="warn"/>}
-        {structure==="ltd" && <Tip text="Companies deduct 100% of mortgage interest before tax. Corp tax 19–25%. Extracting profit as dividends adds further personal tax." type="good"/>}
-      </Card>
-    </div>
-  );
-}
-
-/* ── Results Panel ── */
-function ResultsPanel({ r, structure }) {
-  const profitable = r.netCF > 0;
-  return (
-    <div>
-      <div style={{background:profitable?"#0e2419":"#2a0e0e",border:`1.5px solid ${profitable?C.green:C.red}60`,borderRadius:14,padding:16,marginBottom:12,textAlign:"center"}}>
-        <div style={{fontSize:11,color:C.muted,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.07em"}}>Monthly Net Cashflow After Tax</div>
-        <div style={{fontSize:42,fontWeight:800,fontFamily:"monospace",color:profitable?C.green:C.red,lineHeight:1}}>{fmt(r.netPCM)}</div>
-        <div style={{fontSize:12,color:C.muted,marginTop:6}}>{fmt(r.netCF)} per year</div>
-        <div style={{marginTop:10,display:"flex",justifyContent:"center",gap:6,flexWrap:"wrap"}}>
-          <Chip text={profitable?"Profitable":"Loss-making"} color={profitable?"green":"red"}/>
-          <Chip text={`Gross ${pct(r.grossYield)}`} color={r.grossYield>=5?"green":"amber"}/>
-          <Chip text={`Net ${pct(r.netYield)}`} color={r.netYield>3?"green":r.netYield>0?"amber":"red"}/>
-        </div>
-      </div>
-      <Card title="Income & Expenses (Annual)" icon="💷">
-        <Line label="Gross Rent" value={fmt(r.rentA)} color="accent" bold/>
-        <Line label="Agent Fees" value={`-${fmt(r.agentFees)}`} color="red" indent/>
-        <Line label="Insurance" value={`-${fmt(r.insure)}`} color="red" indent/>
-        <Line label="Repairs & Other" value={`-${fmt(r.otherExp)}`} color="red" indent/>
-        <Line label="Total Deductible Expenses" value={`-${fmt(r.totalExp)}`} bold hr/>
-        {structure==="ltd" && <Line label="Mortgage Interest" value={`-${fmt(r.interestA)}`} color="red" indent/>}
-        <Line label="Taxable Profit" value={fmt(r.taxableProfit)} color={r.taxableProfit>0?"accent":"red"} bold hr/>
-      </Card>
-      <Card title="Tax Calculation" icon="🧾">
-        {structure==="personal" ? <>
-          <Line label="Your Marginal Rate" value={`${r.marginalRate}%`}/>
-          <Line label="Income Tax on Rental" value={fmt(r.tax+r.taxCredit)} color="red"/>
-          <Line label="Section 24 Credit (20%)" value={`-${fmt(r.taxCredit)}`} color="green"/>
-          <Line label="Net Tax Liability" value={fmt(r.tax)} color="red" bold hr/>
-          {r.s24Penalty>0 && <Tip text={`Section 24 costs you ${fmt(r.s24Penalty)}/yr extra vs pre-2017 rules — ${fmt(r.s24Penalty/12)}/mo straight to HMRC.`} type="warn"/>}
-        </> : <>
-          <Line label="Corporation Tax" value={fmt(r.corpTax)} color="red" bold/>
-          <Tip text="19% on profits up to £50k, up to 25% above £250k. Full mortgage interest deductibility is the key advantage." type="info"/>
-        </>}
-      </Card>
-      <Card title="Cashflow Summary" icon="💰">
-        <Line label="Gross Rent" value={fmt(r.rentA)}/>
-        <Line label="Mortgage Payments" value={`-${fmt(r.mortA)}`} color="red"/>
-        <Line label="Running Expenses" value={`-${fmt(r.totalExp)}`} color="red"/>
-        <Line label="Gross CF (pre-tax)" value={fmt(r.grossCF)} color={r.grossCF>0?"accent":"red"} bold hr/>
-        <Line label="Tax" value={`-${fmt(r.tax)}`} color="red"/>
-        <Line label="Net Annual Cashflow" value={fmt(r.netCF)} color={profitable?"green":"red"} bold hr/>
-        <Line label="Net Monthly Cashflow" value={fmt(r.netPCM)} color={profitable?"green":"red"} bold/>
-      </Card>
-      <Card title="Key Ratios" icon="📐">
-        <Line label="Gross Yield" value={pct(r.grossYield)} color={r.grossYield>=5?"green":"accent"}/>
-        <Line label="Net Yield" value={pct(r.netYield)} color={r.netYield>3?"green":r.netYield>0?"accent":"red"}/>
-        <Line label="Mortgage as % of Rent" value={pct((r.mortA/r.rentA)*100)}/>
-        <Line label="Break-even Mortgage (PCM)" value={fmt(r.beMortPCM)} color="accent" bold/>
-        <Line label="Break-even as % of Rent" value={pct(r.beMortPct)} color="accent"/>
-        <Line label="Effective Tax on Gross Rent" value={pct(r.rentA>0?(r.tax/r.rentA)*100:0)}/>
-      </Card>
-    </div>
-  );
-}
-
-/* ── Optimise Panel ── */
-function OptimisePanel({ r, structure, mortPCM }) {
-  return (
-    <div>
-      <Card title="Health Check" icon="📊" gold>
-        {[
-          {label:"Expenses > 5% of rent", ok:r.totalExp>r.rentA*0.05},
-          {label:"Mortgage < 70% of rent", ok:r.mortA/r.rentA<0.70},
-          {label:"Gross yield ≥ 5%", ok:r.grossYield>=5},
-          {label:"Net cashflow positive", ok:r.netCF>0},
-          {label:"Structure optimised", ok:structure==="ltd"||r.marginalRate<=20},
-        ].map((item,i)=>(
-          <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 0",borderBottom:i<4?`1px solid ${C.border}`:"none"}}>
-            <span style={{fontSize:16,color:item.ok?C.green:C.red,flexShrink:0}}>{item.ok?"✓":"✗"}</span>
-            <span style={{fontSize:13}}>{item.label}</span>
-          </div>
-        ))}
-      </Card>
-      <Card title="Break-Even Mortgage" icon="⚖️">
-        <div style={{background:C.inputBg,borderRadius:10,padding:14,textAlign:"center",marginBottom:8}}>
-          <div style={{fontSize:10,color:C.muted,marginBottom:4,textTransform:"uppercase"}}>Max mortgage to stay profitable after tax</div>
-          <div style={{fontSize:34,fontWeight:800,color:C.accent,fontFamily:"monospace"}}>{fmt(r.beMortPCM)}<span style={{fontSize:13,color:C.muted}}>/mo</span></div>
-          <div style={{fontSize:12,color:C.muted,marginTop:4}}>{pct(r.beMortPct)} of your rent</div>
-        </div>
-        <Tip text={`Your mortgage is ${fmt(mortPCM)}/mo. Break-even is ${fmt(r.beMortPCM)}/mo — you ${mortPCM<=r.beMortPCM?"are inside the profitable zone ✓":"are over the break-even and making a loss after tax"}.`} type={mortPCM<=r.beMortPCM?"good":"warn"}/>
-      </Card>
-      {structure==="personal" && r.ltdSaving!==null && (
-        <Card title="Ltd Company vs Personal" icon="🏢">
-          <Line label="Current net (personal)" value={fmt(r.netCF)}/>
-          <Line label="Estimated net (Ltd)" value={fmt(r.netCF+r.ltdSaving)} color={r.ltdSaving>0?"green":"red"}/>
-          <Line label="Annual saving" value={fmt(r.ltdSaving)} color={r.ltdSaving>0?"green":"red"} bold hr/>
-          {r.ltdSaving>0
-            ? <Tip text={`Ltd structure could save ~${fmt(r.ltdSaving)}/yr. Transferring existing property triggers SDLT + potential CGT — get an accountant's numbers first.`} type="good"/>
-            : <Tip text="At your current numbers a Ltd company doesn't show a clear cashflow advantage. Extra accountancy costs may not be worth it." type="info"/>}
-        </Card>
-      )}
-      <Card title="10 Optimisation Actions" icon="📌">
-        <Acc num="01" title="Maximise Allowable Expenses"><Tip text="Every £1 of legitimate expense cuts taxable profit directly. Claim: agent fees, all insurance, repairs, accountancy, mileage to inspect, phone (pro-rated), cleaning between tenancies, advertising, inventory checks." type="good"/></Acc>
-        <Acc num="02" title="Replacement of Domestic Items (RDIR)"><Tip text="Replacing sofas, white goods, carpets, curtains, beds — the replacement cost is fully deductible. The original purchase is NOT. Keep every receipt." type="info"/></Acc>
-        <Acc num="03" title="Repairs vs Capital Improvements"><Tip text="Repairs = fully deductible now. Improvements = not deductible (but reduce CGT on sale). Like-for-like boiler = repair. Loft conversion = improvement. HMRC scrutinise this hard." type="warn"/></Acc>
-        {structure==="personal" && r.marginalRate>=40 && <Acc num="04" title="Incorporate into Ltd Company (SPV)"><Tip text={`You are a ${r.marginalRate}% taxpayer getting only 20% interest relief. Incorporation restores full deductibility. Transfer costs: SDLT on market value + potential CGT. For new purchases — always use Ltd from day one.`} type="warn"/></Acc>}
-        <Acc num="05" title="Interest-Only Mortgage"><Tip text="With interest-only, 100% of your payment qualifies for the Section 24 credit. With repayment, the capital portion gets zero relief — it builds equity but gives you nothing on your tax bill." type="info"/></Acc>
-        <Acc num="06" title="Mortgage Arrangement Fees"><Tip text="Arrangement and broker fees ARE fully deductible as allowable expenses — unlike the interest. Claim in full the year paid, or amortise if added to the loan." type="good"/></Acc>
-        <Acc num="07" title="Personal Allowance Trap (£100k+)"><Tip text="Above £100k total income you lose £1 personal allowance per £2 earned — creating a 60% effective rate. Section 24 inflates your rental profit and can push you over this threshold even on modest real cash profit." type="warn"/></Acc>
-        <Acc num="08" title="Loss Carry Forward"><Tip text="Tax losses carry forward indefinitely against future rental profits. Cannot offset other income. Track voids and heavy repair years carefully." type="info"/></Acc>
-        <Acc num="09" title="Making Tax Digital (MTD)"><Tip text="From April 2026: mandatory for gross rental income above £50k. Quarterly digital submissions to HMRC. Get compliant software now — Landlord Studio, Xero or QuickBooks Property all work." type="warn"/></Acc>
-        <Acc num="10" title="Capital Gains Tax on Sale"><Tip text="CGT: 18% (basic rate) or 24% (higher rate) on residential gains. Annual exempt amount £3,000. Consider timing the sale in a low-income year, gifting to a lower-rate spouse, or Ltd company structure. No main residence relief on BTL." type="info"/></Acc>
-      </Card>
-      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:12,fontSize:10,color:C.muted,lineHeight:1.6,marginBottom:4}}>
-        <strong style={{color:C.accentDim}}>Disclaimer:</strong> Illustrative purposes only. Tax law changes. Always consult a qualified accountant. Based on 2025/26 UK rules.
+function resultsHTML(r,structure){
+  const profitable=r.netCF>0;
+  return`
+    <div class="hero" style="background:${profitable?"#0e2419":"#2a0e0e"};border:1.5px solid ${profitable?"#3dba82":"#e05555"}60">
+      <div class="hero-label">Monthly Net Cashflow After Tax</div>
+      <div class="hero-val" style="color:${profitable?"#3dba82":"#e05555"}">${fmt(r.netPCM)}</div>
+      <div class="hero-sub">${fmt(r.netCF)} per year</div>
+      <div class="hero-chips">
+        ${chip(profitable?"Profitable":"Loss-making",profitable?"green":"red")}
+        ${chip("Gross "+pct(r.grossYield),r.grossYield>=5?"green":"amber")}
+        ${chip("Net "+pct(r.netYield),r.netYield>3?"green":r.netYield>0?"amber":"red")}
       </div>
     </div>
-  );
+    ${card("Income & Expenses (Annual)","💷",
+      line("Gross Rent",fmt(r.rentA),"accent",true)+
+      line("Agent Fees","-"+fmt(r.agentFees),"red",false,true)+
+      line("Insurance","-"+fmt(r.insure),"red",false,true)+
+      line("Repairs & Other","-"+fmt(r.otherExp),"red",false,true)+
+      line("Total Deductible Expenses","-"+fmt(r.totalExp),"",true,false,true)+
+      (structure==="ltd"?line("Mortgage Interest","-"+fmt(r.interestA),"red",false,true):"")+
+      line("Taxable Profit",fmt(r.taxableProfit),r.taxableProfit>0?"accent":"red",true,false,true)
+    )}
+    ${card("Tax Calculation","🧾",
+      structure==="personal"?
+        line("Your Marginal Rate",r.marginalRate+"%")+
+        line("Income Tax on Rental",fmt(r.tax+r.taxCredit),"red")+
+        line("Section 24 Credit (20%)","-"+fmt(r.taxCredit),"green")+
+        line("Net Tax Liability",fmt(r.tax),"red",true,false,true)+
+        (r.s24Penalty>0?tip(`Section 24 costs you ${fmt(r.s24Penalty)}/yr extra vs pre-2017 rules — ${fmt(r.s24Penalty/12)}/mo straight to HMRC.`,"warn"):"")
+      :
+        line("Corporation Tax",fmt(r.corpTax),"red",true)+
+        tip("19% on profits up to £50k, up to 25% above £250k. Full mortgage interest deductibility is the key advantage.","info")
+    )}
+    ${card("Cashflow Summary","💰",
+      line("Gross Rent",fmt(r.rentA))+
+      line("Mortgage Payments","-"+fmt(r.mortA),"red")+
+      line("Running Expenses","-"+fmt(r.totalExp),"red")+
+      line("Gross CF (pre-tax)",fmt(r.grossCF),r.grossCF>0?"accent":"red",true,false,true)+
+      line("Tax","-"+fmt(r.tax),"red")+
+      line("Net Annual Cashflow",fmt(r.netCF),profitable?"green":"red",true,false,true)+
+      line("Net Monthly Cashflow",fmt(r.netPCM),profitable?"green":"red",true)
+    )}
+    ${card("Key Ratios","📐",
+      line("Gross Yield",pct(r.grossYield),r.grossYield>=5?"green":"accent")+
+      line("Net Yield",pct(r.netYield),r.netYield>3?"green":r.netYield>0?"accent":"red")+
+      line("Mortgage as % of Rent",pct((r.mortA/r.rentA)*100))+
+      line("Break-even Mortgage (PCM)",fmt(r.beMortPCM),"accent",true)+
+      line("Break-even as % of Rent",pct(r.beMortPct),"accent")+
+      line("Effective Tax on Gross Rent",pct(r.rentA>0?(r.tax/r.rentA)*100:0))
+    )}`;
 }
 
-/* ── Main App ── */
-function App() {
-  const [tab, setTab] = useState(0);
-  const [desktop, setDesktop] = useState(window.innerWidth >= 800);
+function optimiseHTML(r,structure,mortPCM){
+  const profitable=r.netCF>0;
+  const checks=[
+    {l:"Expenses > 5% of rent",ok:r.totalExp>r.rentA*.05},
+    {l:"Mortgage < 70% of rent",ok:r.mortA/r.rentA<.70},
+    {l:"Gross yield ≥ 5%",ok:r.grossYield>=5},
+    {l:"Net cashflow positive",ok:r.netCF>0},
+    {l:"Structure optimised",ok:structure==="ltd"||r.marginalRate<=20}
+  ];
+  return`
+    ${card("Health Check","📊",
+      checks.map((c,i)=>`<div class="score-row${i<4?` style="border-bottom:1px solid #252836"`:""}">
+        <span class="score-icon" style="color:${c.ok?"#3dba82":"#e05555"}">${c.ok?"✓":"✗"}</span>
+        <span class="score-label">${c.l}</span>
+      </div>`).join("")
+    ,true)}
+    ${card("Break-Even Mortgage","⚖️",`
+      <div class="be-box">
+        <div class="be-label">Max mortgage to stay profitable after tax</div>
+        <div class="be-val">${fmt(r.beMortPCM)}<span class="be-mo">/mo</span></div>
+        <div class="be-pct">${pct(r.beMortPct)} of your rent</div>
+      </div>
+      ${tip(`Your mortgage is ${fmt(mortPCM)}/mo. Break-even is ${fmt(r.beMortPCM)}/mo — you ${mortPCM<=r.beMortPCM?"are inside the profitable zone ✓":"are over the break-even and making a loss after tax"}.`,mortPCM<=r.beMortPCM?"good":"warn")}
+    `)}
+    ${structure==="personal"&&r.ltdSaving!==null?card("Ltd Company vs Personal","🏢",
+      line("Current net (personal)",fmt(r.netCF))+
+      line("Estimated net (Ltd)",fmt(r.netCF+r.ltdSaving),r.ltdSaving>0?"green":"red")+
+      line("Annual saving",fmt(r.ltdSaving),r.ltdSaving>0?"green":"red",true,false,true)+
+      (r.ltdSaving>0?tip(`Ltd structure could save ~${fmt(r.ltdSaving)}/yr. Transferring existing property triggers SDLT + potential CGT — get an accountant's numbers first.`,"good"):tip("At your current numbers a Ltd company doesn't show a clear cashflow advantage. Extra accountancy costs may not be worth it.","info"))
+    ):""}
+    ${card("10 Optimisation Actions","📌",
+      acc("a1","01","Maximise Allowable Expenses",tip("Every £1 of legitimate expense cuts taxable profit directly. Claim: agent fees, all insurance, repairs, accountancy, mileage to inspect, phone (pro-rated), cleaning between tenancies, advertising, inventory checks.","good"))+
+      acc("a2","02","Replacement of Domestic Items (RDIR)",tip("Replacing sofas, white goods, carpets, curtains, beds — the replacement cost is fully deductible. The original purchase is NOT. Keep every receipt.","info"))+
+      acc("a3","03","Repairs vs Capital Improvements",tip("Repairs = fully deductible now. Improvements = not deductible (but reduce CGT on sale). Like-for-like boiler = repair. Loft conversion = improvement. HMRC scrutinise this hard.","warn"))+
+      (structure==="personal"&&r.marginalRate>=40?acc("a4","04","Incorporate into Ltd Company (SPV)",tip(`You are a ${r.marginalRate}% taxpayer getting only 20% interest relief. Incorporation restores full deductibility. Transfer costs: SDLT on market value + potential CGT. For new purchases — always use Ltd from day one.`,"warn")):"")+
+      acc("a5","05","Interest-Only Mortgage",tip("With interest-only, 100% of your payment qualifies for the Section 24 credit. With repayment, the capital portion gets zero relief — it builds equity but gives you nothing on your tax bill.","info"))+
+      acc("a6","06","Mortgage Arrangement Fees",tip("Arrangement and broker fees ARE fully deductible as allowable expenses — unlike the interest. Claim in full the year paid, or amortise if added to the loan.","good"))+
+      acc("a7","07","Personal Allowance Trap (£100k+)",tip("Above £100k total income you lose £1 personal allowance per £2 earned — creating a 60% effective rate. Section 24 inflates your rental profit and can push you over this threshold even on modest real cash profit.","warn"))+
+      acc("a8","08","Loss Carry Forward",tip("Tax losses carry forward indefinitely against future rental profits. Cannot offset other income. Track voids and heavy repair years carefully.","info"))+
+      acc("a9","09","Making Tax Digital (MTD)",tip("From April 2026: mandatory for gross rental income above £50k. Quarterly digital submissions to HMRC. Get compliant software now — Landlord Studio, Xero or QuickBooks Property all work.","warn"))+
+      acc("a10","10","Capital Gains Tax on Sale",tip("CGT: 18% (basic rate) or 24% (higher rate) on residential gains. Annual exempt amount £3,000. Consider timing the sale in a low-income year, gifting to a lower-rate spouse, or Ltd company structure. No main residence relief on BTL.","info"))
+    )}
+    <div class="disclaimer"><strong>Disclaimer:</strong> Illustrative purposes only. Tax law changes. Always consult a qualified accountant. Based on 2025/26 UK rules.</div>`;
+}
 
-  useEffect(()=>{
-    const fn = ()=>setDesktop(window.innerWidth>=800);
-    window.addEventListener("resize",fn);
-    return ()=>window.removeEventListener("resize",fn);
-  },[]);
+// ── Render ──
+function render(){
+  const r=calc();
+  const profitable=r.netCF>0;
+  const {tab,structure}=state;
+  const desktop=window.innerWidth>=800;
+  const navItems=[{i:"📋",l:"Inputs"},{i:"📊",l:"Results"},{i:"🎯",l:"Optimise"}];
 
-  const [s, setS] = useState({
-    rentPCM:1500, propVal:200000, otherIncome:30000,
-    mortPCM:800, mortRate:5.5, mortType:"io", repayInt:0,
-    structure:"personal",
-    agentPct:10, insurePCM:40, repairsPA:600, groundPA:0, otherExpPA:200
-  });
-  const set = (k,v) => setS(prev=>({...prev,[k]:v}));
-
-  const r = useMemo(()=>{
-    const { rentPCM,propVal,otherIncome,mortPCM,mortRate,mortType,repayInt,structure,agentPct,insurePCM,repairsPA,groundPA,otherExpPA } = s;
-    const rentA = rentPCM*12, mortA = mortPCM*12;
-    const interestA = mortType==="io" ? mortA : repayInt;
-    const agentFees = rentA*(agentPct/100), insure = insurePCM*12;
-    const otherExp = repairsPA+groundPA+otherExpPA;
-    const totalExp = agentFees+insure+otherExp;
-    let taxableProfit, taxCredit, tax, corpTax;
-    if (structure==="ltd") {
-      taxableProfit = rentA-totalExp-interestA;
-      corpTax = taxableProfit<=0?0:taxableProfit<=50000?taxableProfit*0.19:taxableProfit<=250000?taxableProfit*0.25-(250000-taxableProfit)*(3/200):taxableProfit*0.25;
-      taxCredit=0; tax=corpTax;
-    } else {
-      taxableProfit = rentA-totalExp;
-      const pa = (otherIncome+taxableProfit)>100000 ? Math.max(0,12570-((otherIncome+taxableProfit)-100000)/2) : 12570;
-      const abovePA = Math.max(0,otherIncome+taxableProfit-pa);
-      const creditBase = Math.min(interestA,Math.max(0,taxableProfit),abovePA);
-      taxCredit = creditBase*0.20;
-      const rentalTax = Math.max(0,calcTax(otherIncome+taxableProfit)-calcTax(otherIncome));
-      tax = Math.max(0,rentalTax-taxCredit); corpTax=0;
-    }
-    const grossCF=rentA-mortA-totalExp, netCF=grossCF-tax, netPCM=netCF/12;
-    const grossYield=(rentA/propVal)*100, netYield=(netCF/propVal)*100;
-    const totalIncome = structure==="ltd"?otherIncome:otherIncome+taxableProfit;
-    const mr = margRate(totalIncome);
-    let s24Penalty=0;
-    if (structure==="personal") {
-      const oldP=Math.max(0,rentA-totalExp-interestA);
-      const oldT=Math.max(0,calcTax(otherIncome+oldP)-calcTax(otherIncome));
-      s24Penalty=tax-oldT;
-    }
-    let beMortPCM=0;
-    for (let m=0;m<=rentPCM;m+=10) {
-      const mA=m*12, intA2=mortType==="io"?mA:propVal*(mortRate/100);
-      let t2;
-      if (structure==="ltd"){const p2=rentA-totalExp-intA2;t2=p2<=0?0:p2*0.19;}
-      else{const p2=rentA-totalExp;const pa2=(otherIncome+p2)>100000?Math.max(0,12570-((otherIncome+p2)-100000)/2):12570;const ab2=Math.max(0,otherIncome+p2-pa2);const cb2=Math.min(intA2,Math.max(0,p2),ab2);const tc2=cb2*0.20;const rt2=Math.max(0,calcTax(otherIncome+p2)-calcTax(otherIncome));t2=Math.max(0,rt2-tc2);}
-      if(rentA-mA-totalExp-t2>=0)beMortPCM=m; else break;
-    }
-    const beMortPct=rentPCM>0?(beMortPCM/rentPCM)*100:0;
-    let ltdSaving=null;
-    if(structure==="personal"){const lp=rentA-totalExp-interestA;const lc=lp<=0?0:lp<=50000?lp*0.19:lp*0.25;ltdSaving=(rentA-mortA-totalExp-lc)-netCF;}
-    return {rentA,mortA,interestA,agentFees,insure,otherExp,totalExp,taxableProfit,taxCredit,tax,corpTax,grossCF,netCF,netPCM,grossYield,netYield,marginalRate:mr,s24Penalty,beMortPCM,beMortPct,ltdSaving};
-  },[s]);
-
-  const profitable = r.netCF>0;
-  const navItems = [{icon:"📋",label:"Inputs"},{icon:"📊",label:"Results"},{icon:"🎯",label:"Optimise"}];
-
-  /* ── DESKTOP LAYOUT ── */
-  if (desktop) {
-    return (
-      <div style={{background:C.bg,minHeight:"100vh",fontFamily:"'Segoe UI',system-ui,sans-serif",color:C.text}}>
-        {/* Desktop header */}
-        <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"16px 32px"}}>
-          <div style={{maxWidth:1200,margin:"0 auto",display:"flex",alignItems:"center",gap:16}}>
-            <span style={{fontSize:26}}>🏠</span>
-            <div>
-              <div style={{fontSize:20,fontWeight:700,color:C.accent}}>UK Buy-to-Let Tax Calculator</div>
-              <div style={{fontSize:12,color:C.muted}}>2025/26 · Section 24 · Optimisation Analysis</div>
-            </div>
-            <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
-              {navItems.map((n,i)=>(
-                <button key={i} onClick={()=>setTab(i)} style={{background:tab===i?C.accent+"22":"transparent",border:tab===i?`1.5px solid ${C.accent}`:`1.5px solid ${C.border}`,borderRadius:8,padding:"8px 20px",cursor:"pointer",color:tab===i?C.accent:C.muted,fontSize:13,fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
-                  <span>{n.icon}</span>{n.label}
-                </button>
-              ))}
-              <div style={{marginLeft:16,background:profitable?"#0e2419":"#2a0e0e",border:`1px solid ${profitable?C.green:C.red}50`,borderRadius:10,padding:"8px 18px",textAlign:"center"}}>
-                <div style={{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.06em"}}>Net / Month</div>
-                <div style={{fontSize:22,fontWeight:800,fontFamily:"monospace",color:profitable?C.green:C.red}}>{fmt(r.netPCM)}</div>
-              </div>
-            </div>
+  const header=`<div class="header">
+    <div class="header-inner">
+      <span class="header-logo">🏠</span>
+      <div>
+        <div class="header-title">BTL Tax Calculator</div>
+        <div class="header-sub">UK 2025/26 · Section 24 · Optimisation</div>
+      </div>
+      ${desktop?`
+        <div class="header-tabs" style="display:flex;margin-left:auto;gap:8px;align-items:center">
+          ${navItems.map((n,i)=>`<button class="tab-btn${tab===i?" active":""}" onclick="setTab(${i})">${n.i} ${n.l}</button>`).join("")}
+          <div class="desktop-net-box${profitable?"":" loss"}" style="margin-left:16px">
+            <div class="desktop-net-label">Net / Month</div>
+            <div class="desktop-net-val" style="color:${profitable?"#3dba82":"#e05555"}">${fmt(r.netPCM)}</div>
           </div>
         </div>
-        {/* Desktop two-column body */}
-        <div style={{maxWidth:1200,margin:"0 auto",padding:"24px 32px",display:"flex",gap:24,alignItems:"flex-start"}}>
-          {/* Left — always inputs */}
-          <div style={{flex:"0 0 420px"}}>
-            <InputsPanel state={s} set={set}/>
-          </div>
-          {/* Right — results or optimise */}
-          <div style={{flex:1,minWidth:0}}>
-            {tab!==2 && <ResultsPanel r={r} structure={s.structure}/>}
-            {tab===2 && <OptimisePanel r={r} structure={s.structure} mortPCM={s.mortPCM}/>}
-          </div>
+      `:`
+        <div class="header-right" style="margin-left:auto;text-align:right">
+          <div class="header-net-label">NET/MONTH</div>
+          <div class="header-net-val" style="color:${profitable?"#3dba82":"#e05555"}">${fmt(r.netPCM)}</div>
         </div>
-      </div>
-    );
+      `}
+    </div>
+  </div>`;
+
+  let body="";
+  if(desktop){
+    const right=tab===2?optimiseHTML(r,structure,state.mortPCM):resultsHTML(r,structure);
+    body=`<div class="body" style="display:flex;gap:24px;align-items:flex-start;max-width:1200px;margin:0 auto;padding:24px 32px 32px">
+      <div class="col-left" style="flex:0 0 420px;min-width:0">${inputsHTML()}</div>
+      <div class="col-right" style="flex:1;min-width:0">${right}</div>
+    </div>`;
+  } else {
+    const mobileNav=`<div class="bottom-nav">
+      ${navItems.map((n,i)=>`<button class="nav-btn" onclick="setTab(${i})">
+        <span class="nav-icon">${n.i}</span>
+        <span class="nav-label" style="color:${tab===i?"#c9a84c":"#7a7f96"};font-weight:${tab===i?700:400}">${n.l}</span>
+        ${tab===i?`<div class="nav-bar" style="display:block"></div>`:""}
+      </button>`).join("")}
+    </div>`;
+    let content="";
+    if(tab===0)content=inputsHTML()+`<button class="calc-btn mobile-only" onclick="setTab(1)">Calculate Results →</button>`;
+    if(tab===1)content=resultsHTML(r,structure);
+    if(tab===2)content=optimiseHTML(r,structure,state.mortPCM);
+    body=`<div class="body" style="padding:14px 14px 0;max-width:480px;margin:0 auto">${content}</div>${mobileNav}`;
   }
 
-  /* ── MOBILE LAYOUT ── */
-  return (
-    <div style={{background:C.bg,minHeight:"100vh",fontFamily:"'Segoe UI',system-ui,sans-serif",color:C.text,paddingBottom:72,maxWidth:480,margin:"0 auto"}}>
-      {/* Mobile header */}
-      <div style={{background:C.card,borderBottom:`1px solid ${C.border}`,padding:"14px 16px 12px"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <span style={{fontSize:22}}>🏠</span>
-          <div>
-            <div style={{fontSize:16,fontWeight:700,color:C.accent,lineHeight:1.2}}>BTL Tax Calculator</div>
-            <div style={{fontSize:10,color:C.muted}}>UK 2025/26 · Section 24 · Optimisation</div>
-          </div>
-          <div style={{marginLeft:"auto",textAlign:"right"}}>
-            <div style={{fontSize:10,color:C.muted}}>NET/MONTH</div>
-            <div style={{fontSize:18,fontWeight:800,fontFamily:"monospace",color:profitable?C.green:C.red}}>{fmt(r.netPCM)}</div>
-          </div>
-        </div>
-      </div>
-      {/* Mobile content */}
-      <div style={{padding:"14px 14px 0"}}>
-        {tab===0 && <>
-          <InputsPanel state={s} set={set}/>
-          <button onClick={()=>setTab(1)} style={{width:"100%",background:C.accent,color:"#000",border:"none",borderRadius:10,padding:15,fontSize:16,fontWeight:700,cursor:"pointer",marginBottom:4}}>
-            Calculate Results →
-          </button>
-        </>}
-        {tab===1 && <ResultsPanel r={r} structure={s.structure}/>}
-        {tab===2 && <OptimisePanel r={r} structure={s.structure} mortPCM={s.mortPCM}/>}
-      </div>
-      {/* Mobile bottom nav */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:C.card,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100}}>
-        {navItems.map((n,i)=>(
-          <button key={i} onClick={()=>setTab(i)} style={{flex:1,background:"transparent",border:"none",padding:"10px 0 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-            <span style={{fontSize:20}}>{n.icon}</span>
-            <span style={{fontSize:10,color:tab===i?C.accent:C.muted,fontWeight:tab===i?700:400}}>{n.label}</span>
-            {tab===i && <div style={{width:24,height:2,background:C.accent,borderRadius:2}}/>}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  document.getElementById("app").innerHTML=`<div style="min-height:100vh;padding-bottom:${desktop?0:72}px">${header}${body}</div>`;
+  rebindFields();
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+// ── Field interaction ──
+function fieldFocus(id,el){
+  const fw=document.getElementById("fw-"+id);
+  if(fw)fw.classList.add("focused");
+  const v=String(state[id]||"");
+  el.value=v==="0"?"":v;
+  el.setSelectionRange(0,el.value.length);
+}
+function fieldBlur(id,el){
+  const fw=document.getElementById("fw-"+id);
+  if(fw)fw.classList.remove("focused");
+  const n=parseFloat(el.value);
+  const final=isNaN(n)?0:n;
+  state[id]=final;
+  el.value=final===0?"":String(final);
+  render();
+}
+function fieldInput(id,el){
+  let v=el.value.replace(/[^0-9.]/g,"");
+  const d=v.indexOf(".");
+  if(d!==-1)v=v.slice(0,d+1)+v.slice(d+1).replace(/\./g,"");
+  if(v.length>1&&v[0]==="0"&&v[1]!==".")v=v.replace(/^0+/,"")||"0";
+  el.value=v;
+  const n=parseFloat(v);
+  if(!isNaN(n)){state[id]=n;}
+  // Update header net/month live without full re-render
+  const r=calc();
+  const profitable=r.netCF>0;
+  const netEls=document.querySelectorAll(".header-net-val,.desktop-net-val");
+  netEls.forEach(e=>{e.textContent=fmt(r.netPCM);e.style.color=profitable?"#3dba82":"#e05555";});
+}
+
+function rebindFields(){
+  // Fields are rebound via inline handlers on each render — nothing extra needed
+}
+
+function pick(id,val){
+  state[id]=val;
+  render();
+}
+function setTab(i){
+  state.tab=i;
+  render();
+  window.scrollTo(0,0);
+}
+function toggleAcc(id){
+  state.acc[id]=!state.acc[id];
+  render();
+}
+
+// ── Resize handler ──
+let resizeTimer;
+window.addEventListener("resize",()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(render,100);
+});
+
+// ── Boot ──
+render();
 </script>
 </body>
 </html>
