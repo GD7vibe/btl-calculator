@@ -424,7 +424,8 @@ function render(){
       </div>
       ${desktop?`
         <div class="header-tabs" style="display:flex;margin-left:auto;gap:8px;align-items:center">
-          ${navItems.map((n,i)=>`<button class="tab-btn${tab===i?" active":""}" onclick="setTab(${i})">${n.i} ${n.l}</button>`).join("")}
+          <button class="tab-btn${tab!==2?' active':''}" onclick="setTab(1)">📊 Results</button>
+          <button class="tab-btn${tab===2?' active':''}" onclick="setTab(2)">🎯 Optimise</button>
           <div class="desktop-net-box${profitable?"":" loss"}" style="margin-left:16px">
             <div class="desktop-net-label">Net / Month</div>
             <div class="desktop-net-val" style="color:${profitable?"#3dba82":"#e05555"}">${fmt(r.netPCM)}</div>
@@ -441,6 +442,7 @@ function render(){
 
   let body="";
   if(desktop){
+    // On desktop: left=always inputs, right=results (tab 0 or 1) or optimise (tab 2)
     const right=tab===2?optimiseHTML(r,structure,state.mortPCM):resultsHTML(r,structure);
     body=`<div class="body" style="display:flex;gap:24px;align-items:flex-start;max-width:1200px;margin:0 auto;padding:24px 32px 32px">
       <div class="col-left" style="flex:0 0 420px;min-width:0">${inputsHTML()}</div>
@@ -455,7 +457,7 @@ function render(){
       </button>`).join("")}
     </div>`;
     let content="";
-    if(tab===0)content=inputsHTML()+`<button class="calc-btn mobile-only" onclick="setTab(1)">Calculate Results →</button>`;
+    if(tab===0)content=inputsHTML()+`<button class="calc-btn" style="width:100%;background:#c9a84c;color:#000;border:none;border-radius:10px;padding:15px;font-size:16px;font-weight:700;margin-bottom:16px;display:block" onclick="setTab(1)">Calculate Results →</button>`;
     if(tab===1)content=resultsHTML(r,structure);
     if(tab===2)content=optimiseHTML(r,structure,state.mortPCM);
     body=`<div class="body" style="padding:14px 14px 0;max-width:480px;margin:0 auto">${content}</div>${mobileNav}`;
