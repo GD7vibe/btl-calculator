@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0d0f18" />
+  <title>UK Buy-to-Let Tax Calculator 2025/26</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #0d0f18; color: #eaeaea; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; height: 100%; }
+    #root { height: 100%; }
+    input[type=text] {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      box-shadow: none !important;
+      -webkit-box-shadow: none !important;
+    }
+    input[type=text]:focus {
+      outline: none;
+      box-shadow: none !important;
+      -webkit-box-shadow: none !important;
+    }
+    button { -webkit-appearance: none; font-family: inherit; }
+    * { -webkit-tap-highlight-color: transparent; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0d0f18; }
+    ::-webkit-scrollbar-thumb { background: #252836; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    const C = {
+      bg: "#0d0f18", card: "#161923", border: "#252836",
+      accent: "#c9a84c", accentDim: "#7a6030",
+      red: "#e05555", green: "#3dba82", blue: "#5b8dee", amber: "#e08a2a",
+      text: "#eaeaea", muted: "#7a7f96", inputBg: "#0f1120",
+    };
+
+    const fmt = (n) =>
+      n < 0
+        ? `-£${Math.abs(n).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+        : `£${n.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+    const pct = (n) => `${n.toFixed(1)}%`;
+
+    function Field({ label, value, onChange, pre = "£", suf, note }) {
+      const [display, setDisplay] = useState(value === 0 ? "" : String(value));
+      const [isFocused, setIsFocused] = useState(false);
+
+      const handleFocus = (e) => {
+        setIsFocused(true);
+        setDisplay(value === 0 ? "" : String(value));
+        e.target.setSelectionRange(0, e.target.value.length);
+      };
+
+      const handleChange = (e) => {
+        let v = e.target.value.replace(/[^0-9.]/g, "");
+        const dotIndex = v.indexOf(".");
+        if (dotIndex !== -1) {
+          v = v.slice(0, dotIndex + 1) + v.slice(dotIndex + 1).replace(/\./g, "");
+        }
+        if (v.length > 1 && v[0] === "0" && v[1] !== ".") {
+          v = v.replace(/^0+/, "") || "0";
+        }
+        setDisplay(v);
+        const num = parseFloat(v);
+        if (!isNaN(num)) onChange(num);
+      };
+
+      const handleBlur = () => {
+        setIsFocused(false);
+        const num = parseFloat(display);
+        const final = isNaN(num) ? 0 : num;
+        setDisplay(final === 0 ? "" : String(final));
+        onChange(final);
+      };
+
+      return (
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", color: C.muted, fontSize: 11, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+            {label}
+          </label>
+          <div style={{ display: "flex", alignItems: "stretch", background: C.inputBg, border: `1.5px solid ${isFocused ? C.accent : C.border}`, borderRadius: 8, overflow: "hidden" }}>
+            {pre && (
+              <span style={{ display: "flex", alignItems: "center", padding: "0 12px", color: C.accent, fontWeight: "bold", fontSize: 15, borderRight: `1px solid ${C.border}`, background: "#0d0f18", minWidth: 36, justifyContent: "center" }}>
+                {pre}
+              </span>
+            )}
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
+              value={display}
+              onFocus={handleFocus}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="0"
+              style={{ flex: 1, background: "transparent", border: "none", outline: "none", WebkitAppearance: "none", color: C.text, padding: "13px 12px", fontSize: 16, fontFamily: "monospace", minWidth: 0, caretColor: C.accent }}
+            />
+            {suf && (
+              <span style={{ display: "flex", alignItems: "center", padding: "0 10px", color: C.muted, fontSize: 12, borderLeft: `1px solid ${C.border}`, whiteSpace: "nowrap" }}>
+                {suf}
+              </span>
+            )}
+          </div>
+          {note && <p style={{ color: C.muted, fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>{note}</p>}
+        </div>
+      );
+    }
+
+    function Picker({ label, value, onChange, options }) {
+      return (
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: "block", color: C.muted, fontSize: 11, marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{label}</label>
+          <div style={{ display: "flex", gap: 6 }}>
+            {options.map((o) => (
+              <button key={o.value} onClick={() => onChange(o.value)} style={{
+                flex: 1, padding: "11px 6px", fontSize: 12, fontWeight: "bold", borderRadius: 8, cursor: "pointer",
+                border: value === o.value ? `1.5px solid ${C.accent}` : `1.5px solid ${C.border}`,
+                background: value === o.value ? C.accent + "22" : C.inputBg,
+                color: value === o.value ? C.accent : C.muted,
+              }}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function Card({ title, icon, children, gold }) {
+      return (
+        <div style={{ background: C.card, border: `1.5px solid ${gold ? C.accentDim : C.border}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+          {title && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+              {icon && <span style={{ fontSize: 14 }}>{icon}</span>}
+              <span style={{ color: gold ? C.accent : C.blue, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}>{title}</span>
+            </div>
+          )}
+          {children}
+        </div>
+      );
+    }
+
+    function Line({ label, value, color, bold, indent, hr }) {
+      const vc = color === "green" ? C.green : color === "red" ? C.red : color === "accent" ? C.accent : C.text;
+      return (
+        <>
+          {hr && <div style={{ borderTop: `1px solid ${C.border}`, margin: "7px 0" }} />}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", paddingLeft: indent ? 10 : 0 }}>
+            <span style={{ color: indent ? C.muted : C.text, fontSize: bold ? 14 : 12, fontWeight: bold ? 700 : 400, paddingRight: 8, lineHeight: 1.3 }}>{label}</span>
+            <span style={{ color: vc, fontSize: bold ? 14 : 12, fontWeight: bold ? 700 : 400, fontFamily: "monospace", whiteSpace: "nowrap" }}>{value}</span>
+          </div>
+        </>
+      );
+    }
+
+    function Chip({ text, color }) {
+      const c = color === "green" ? C.green : color === "red" ? C.red : color === "amber" ? C.amber : C.accent;
+      return (
+        <span style={{ background: c + "20", color: c, border: `1px solid ${c}50`, borderRadius: 5, padding: "3px 8px", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>
+          {text}
+        </span>
+      );
+    }
+
+    function Tip({ text, type }) {
+      const t = type || "info";
+      const c = t === "warn" ? C.amber : t === "good" ? C.green : C.blue;
+      const icon = t === "warn" ? "⚠" : t === "good" ? "✓" : "ℹ";
+      return (
+        <div style={{ background: c + "12", border: `1px solid ${c}40`, borderRadius: 8, padding: "10px 11px", marginBottom: 8, display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <span style={{ color: c, fontSize: 12, marginTop: 1, flexShrink: 0 }}>{icon}</span>
+          <span style={{ color: C.text, fontSize: 12, lineHeight: 1.55 }}>{text}</span>
+        </div>
+      );
+    }
+
+    function AccordionTip({ num, title, children }) {
+      const [open, setOpen] = useState(false);
+      return (
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 7, overflow: "hidden" }}>
+          <button onClick={() => setOpen(!open)} style={{ width: "100%", background: open ? C.accent + "15" : "transparent", border: "none", padding: "12px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+            <span style={{ color: open ? C.accent : C.text, fontSize: 13, fontWeight: 600, textAlign: "left" }}>
+              <span style={{ color: C.accentDim, marginRight: 6, fontSize: 10 }}>{num}</span>{title}
+            </span>
+            <span style={{ color: C.muted, fontSize: 13, marginLeft: 8, flexShrink: 0 }}>{open ? "▲" : "▼"}</span>
+          </button>
+          {open && <div style={{ padding: "0 12px 12px" }}>{children}</div>}
+        </div>
+      );
+    }
+
+    function calcIncomeTax(taxableIncome) {
+      const pa = taxableIncome > 100000 ? Math.max(0, 12570 - (taxableIncome - 100000) / 2) : 12570;
+      const taxable = Math.max(0, taxableIncome - pa);
+      let tax = 0;
+      if (taxable <= 37700) tax = taxable * 0.20;
+      else if (taxable <= 125140) tax = 37700 * 0.20 + (taxable - 37700) * 0.40;
+      else tax = 37700 * 0.20 + (125140 - 37700) * 0.40 + (taxable - 125140) * 0.45;
+      return tax;
+    }
+
+    function getMarginalRate(income) {
+      if (income <= 12570) return 0;
+      if (income <= 50270) return 20;
+      if (income <= 100000) return 40;
+      if (income <= 125140) return 60;
+      return 45;
+    }
+
+    function App() {
+      const [tab, setTab] = useState(0);
+      const [rentPCM, setRentPCM] = useState(1500);
+      const [propVal, setPropVal] = useState(200000);
+      const [otherIncome, setOtherIncome] = useState(30000);
+      const [mortPCM, setMortPCM] = useState(800);
+      const [mortRate, setMortRate] = useState(5.5);
+      const [mortType, setMortType] = useState("io");
+      const [repayInterest, setRepayInterest] = useState(0);
+      const [structure, setStructure] = useState("personal");
+      const [agentPct, setAgentPct] = useState(10);
+      const [insurePCM, setInsurePCM] = useState(40);
+      const [repairsPA, setRepairsPA] = useState(600);
+      const [groundPA, setGroundPA] = useState(0);
+      const [otherExpPA, setOtherExpPA] = useState(200);
+
+      const r = useMemo(() => {
+        const rentA = rentPCM * 12;
+        const mortA = mortPCM * 12;
+        const interestA = mortType === "io" ? mortA : repayInterest;
+        const agentFees = rentA * (agentPct / 100);
+        const insure = insurePCM * 12;
+        const totalExp = agentFees + insure + repairsPA + groundPA + otherExpPA;
+
+        let taxableProfit, taxCredit, tax, corpTax;
+
+        if (structure === "ltd") {
+          taxableProfit = rentA - totalExp - interestA;
+          corpTax = taxableProfit <= 0 ? 0
+            : taxableProfit <= 50000 ? taxableProfit * 0.19
+            : taxableProfit <= 250000 ? taxableProfit * 0.25 - (250000 - taxableProfit) * (3 / 200)
+            : taxableProfit * 0.25;
+          taxCredit = 0;
+          tax = corpTax;
+        } else {
+          taxableProfit = rentA - totalExp;
+          const pa = (otherIncome + taxableProfit) > 100000
+            ? Math.max(0, 12570 - ((otherIncome + taxableProfit) - 100000) / 2)
+            : 12570;
+          const totalAbovePA = Math.max(0, otherIncome + taxableProfit - pa);
+          const creditBase = Math.min(interestA, Math.max(0, taxableProfit), totalAbovePA);
+          taxCredit = creditBase * 0.20;
+          const rentalTax = Math.max(0, calcIncomeTax(otherIncome + taxableProfit) - calcIncomeTax(otherIncome));
+          tax = Math.max(0, rentalTax - taxCredit);
+          corpTax = 0;
+        }
+
+        const grossCF = rentA - mortA - totalExp;
+        const netCF = grossCF - tax;
+        const netPCM = netCF / 12;
+        const grossYield = (rentA / propVal) * 100;
+        const netYield = (netCF / propVal) * 100;
+        const totalTaxableIncome = structure === "ltd" ? otherIncome : otherIncome + taxableProfit;
+        const marginalRate = getMarginalRate(totalTaxableIncome);
+
+        let s24Penalty = 0;
+        if (structure === "personal") {
+          const oldProfit = Math.max(0, rentA - totalExp - interestA);
+          const oldTax = Math.max(0, calcIncomeTax(otherIncome + oldProfit) - calcIncomeTax(otherIncome));
+          s24Penalty = tax - oldTax;
+        }
+
+        let beMortPCM = 0;
+        for (let m = 0; m <= rentPCM; m += 10) {
+          const mA = m * 12;
+          const intA2 = mortType === "io" ? mA : propVal * (mortRate / 100);
+          let t2;
+          if (structure === "ltd") {
+            const p2 = rentA - totalExp - intA2;
+            t2 = p2 <= 0 ? 0 : p2 * 0.19;
+          } else {
+            const p2 = rentA - totalExp;
+            const pa2 = (otherIncome + p2) > 100000 ? Math.max(0, 12570 - ((otherIncome + p2) - 100000) / 2) : 12570;
+            const abovePA2 = Math.max(0, otherIncome + p2 - pa2);
+            const creditBase2 = Math.min(intA2, Math.max(0, p2), abovePA2);
+            const tc2 = creditBase2 * 0.20;
+            const rt2 = Math.max(0, calcIncomeTax(otherIncome + p2) - calcIncomeTax(otherIncome));
+            t2 = Math.max(0, rt2 - tc2);
+          }
+          if (rentA - mA - totalExp - t2 >= 0) beMortPCM = m;
+          else break;
+        }
+        const beMortPct = rentPCM > 0 ? (beMortPCM / rentPCM) * 100 : 0;
+
+        let ltdSaving = null;
+        if (structure === "personal") {
+          const ltdProfit = rentA - totalExp - interestA;
+          const ltdCorp = ltdProfit <= 0 ? 0 : ltdProfit <= 50000 ? ltdProfit * 0.19 : ltdProfit * 0.25;
+          ltdSaving = (rentA - mortA - totalExp - ltdCorp) - netCF;
+        }
+
+        return { rentA, mortA, interestA, agentFees, insure, totalExp, taxableProfit, taxCredit, tax, corpTax, grossCF, netCF, netPCM, grossYield, netYield, marginalRate, s24Penalty, beMortPCM, beMortPct, ltdSaving, totalTaxableIncome };
+      }, [rentPCM, propVal, otherIncome, mortPCM, mortRate, mortType, repayInterest, structure, agentPct, insurePCM, repairsPA, groundPA, otherExpPA]);
+
+      const profitable = r.netCF > 0;
+
+      return (
+        <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", color: C.text, paddingBottom: 72, maxWidth: 480, margin: "0 auto" }}>
+
+          {/* Header */}
+          <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: "14px 16px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 22 }}>🏠</span>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.accent, lineHeight: 1.2 }}>BTL Tax Calculator</div>
+                <div style={{ fontSize: 10, color: C.muted }}>UK 2025/26 · Section 24 · Optimisation</div>
+              </div>
+              <div style={{ marginLeft: "auto", textAlign: "right" }}>
+                <div style={{ fontSize: 10, color: C.muted }}>NET/MONTH</div>
+                <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "monospace", color: profitable ? C.green : C.red }}>{fmt(r.netPCM)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: "14px 14px 0" }}>
+
+            {/* INPUTS */}
+            {tab === 0 && (
+              <div>
+                <Card title="Property & Income" icon="🏘">
+                  <Field label="Monthly Rent" value={rentPCM} onChange={setRentPCM} suf="per month" />
+                  <Field label="Property Value" value={propVal} onChange={setPropVal} />
+                  <Field label="Other Annual Income" value={otherIncome} onChange={setOtherIncome} note="Salary, pension etc — determines your marginal tax rate" />
+                </Card>
+
+                <Card title="Mortgage" icon="🏦">
+                  <Field label="Monthly Mortgage Payment" value={mortPCM} onChange={setMortPCM} suf="per month" />
+                  <Field label="Interest Rate" value={mortRate} onChange={setMortRate} pre="%" suf="per annum" />
+                  <Picker label="Mortgage Type" value={mortType} onChange={setMortType} options={[
+                    { value: "io", label: "Interest Only" },
+                    { value: "repay", label: "Repayment" },
+                  ]} />
+                  {mortType === "repay" && (
+                    <div>
+                      <Field label="Annual Interest Paid" value={repayInterest} onChange={setRepayInterest} suf="per year" note="Get the exact figure from your annual mortgage statement — only the interest portion qualifies for Section 24 relief." />
+                      <Tip text="This figure reduces each year as your capital balance falls. Update it annually before filing self-assessment." type="warn" />
+                    </div>
+                  )}
+                </Card>
+
+                <Card title="Allowable Expenses" icon="📋">
+                  <Field label="Letting Agent Fees" value={agentPct} onChange={setAgentPct} pre="%" suf="of rent" note="Fully deductible from taxable profit" />
+                  <Field label="Landlord Insurance" value={insurePCM} onChange={setInsurePCM} suf="per month" />
+                  <Field label="Repairs & Maintenance" value={repairsPA} onChange={setRepairsPA} suf="per year" note="Like-for-like repairs only — improvements are not deductible" />
+                  <Field label="Ground Rent / Service Charge" value={groundPA} onChange={setGroundPA} suf="per year" />
+                  <Field label="Other Expenses" value={otherExpPA} onChange={setOtherExpPA} suf="per year" note="Accountancy, mileage to inspect, advertising" />
+                </Card>
+
+                <Card title="Ownership Structure" icon="🏛">
+                  <Picker label="Property held in" value={structure} onChange={setStructure} options={[
+                    { value: "personal", label: "Personal Name" },
+                    { value: "ltd", label: "Ltd Company" },
+                  ]} />
+                  {structure === "personal" && (
+                    <Tip text="Section 24 applies — you only get a 20% tax credit on mortgage interest. At 40% tax you're losing half your interest relief to HMRC." type="warn" />
+                  )}
+                  {structure === "ltd" && (
+                    <Tip text="Companies deduct 100% of mortgage interest before tax. Corp tax 19–25%. Extracting profit as dividends adds further personal tax." type="good" />
+                  )}
+                </Card>
+
+                <button onClick={() => setTab(1)} style={{ width: "100%", background: C.accent, color: "#000", border: "none", borderRadius: 10, padding: 15, fontSize: 16, fontWeight: 700, cursor: "pointer", marginBottom: 4 }}>
+                  Calculate Results →
+                </button>
+              </div>
+            )}
+
+            {/* RESULTS */}
+            {tab === 1 && (
+              <div>
+                <div style={{ background: profitable ? "#0e2419" : "#2a0e0e", border: `1.5px solid ${profitable ? C.green : C.red}60`, borderRadius: 14, padding: 16, marginBottom: 12, textAlign: "center" }}>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.07em" }}>Monthly Net Cashflow After Tax</div>
+                  <div style={{ fontSize: 42, fontWeight: 800, fontFamily: "monospace", color: profitable ? C.green : C.red, lineHeight: 1 }}>{fmt(r.netPCM)}</div>
+                  <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>{fmt(r.netCF)} per year</div>
+                  <div style={{ marginTop: 10, display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+                    <Chip text={profitable ? "Profitable" : "Loss-making"} color={profitable ? "green" : "red"} />
+                    <Chip text={`Gross ${pct(r.grossYield)}`} color={r.grossYield >= 5 ? "green" : "amber"} />
+                    <Chip text={`Net ${pct(r.netYield)}`} color={r.netYield > 3 ? "green" : r.netYield > 0 ? "amber" : "red"} />
+                  </div>
+                </div>
+
+                <Card title="Income & Expenses (Annual)" icon="💷">
+                  <Line label="Gross Rent" value={fmt(r.rentA)} color="accent" bold />
+                  <Line label="Agent Fees" value={`-${fmt(r.agentFees)}`} color="red" indent />
+                  <Line label="Insurance" value={`-${fmt(r.insure)}`} color="red" indent />
+                  <Line label="Repairs & Other" value={`-${fmt(r.repairsPA + r.groundPA + r.otherExpPA)}`} color="red" indent />
+                  <Line label="Total Deductible Expenses" value={`-${fmt(r.totalExp)}`} bold hr />
+                  {structure === "ltd" && <Line label="Mortgage Interest" value={`-${fmt(r.interestA)}`} color="red" indent />}
+                  <Line label="Taxable Profit" value={fmt(r.taxableProfit)} color={r.taxableProfit > 0 ? "accent" : "red"} bold hr />
+                </Card>
+
+                <Card title="Tax Calculation" icon="🧾">
+                  {structure === "personal" ? (
+                    <div>
+                      <Line label="Your Marginal Rate" value={`${r.marginalRate}%`} />
+                      <Line label="Income Tax on Rental" value={fmt(r.tax + r.taxCredit)} color="red" />
+                      <Line label="Section 24 Credit (20%)" value={`-${fmt(r.taxCredit)}`} color="green" />
+                      <Line label="Net Tax Liability" value={fmt(r.tax)} color="red" bold hr />
+                      {r.s24Penalty > 0 && (
+                        <Tip text={`Section 24 costs you ${fmt(r.s24Penalty)}/yr extra vs pre-2017 rules — ${fmt(r.s24Penalty / 12)}/mo straight to HMRC.`} type="warn" />
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <Line label="Corporation Tax" value={fmt(r.corpTax)} color="red" bold />
+                      <Tip text="19% on profits up to £50k, up to 25% above £250k. Full mortgage interest deductibility is the key advantage." type="info" />
+                    </div>
+                  )}
+                </Card>
+
+                <Card title="Cashflow Summary" icon="💰">
+                  <Line label="Gross Rent" value={fmt(r.rentA)} />
+                  <Line label="Mortgage Payments" value={`-${fmt(r.mortA)}`} color="red" />
+                  <Line label="Running Expenses" value={`-${fmt(r.totalExp)}`} color="red" />
+                  <Line label="Gross CF (pre-tax)" value={fmt(r.grossCF)} color={r.grossCF > 0 ? "accent" : "red"} bold hr />
+                  <Line label="Tax" value={`-${fmt(r.tax)}`} color="red" />
+                  <Line label="Net Annual Cashflow" value={fmt(r.netCF)} color={profitable ? "green" : "red"} bold hr />
+                  <Line label="Net Monthly Cashflow" value={fmt(r.netPCM)} color={profitable ? "green" : "red"} bold />
+                </Card>
+
+                <Card title="Key Ratios" icon="📐">
+                  <Line label="Gross Yield" value={pct(r.grossYield)} color={r.grossYield >= 5 ? "green" : "accent"} />
+                  <Line label="Net Yield" value={pct(r.netYield)} color={r.netYield > 3 ? "green" : r.netYield > 0 ? "accent" : "red"} />
+                  <Line label="Mortgage as % of Rent" value={pct((r.mortA / r.rentA) * 100)} />
+                  <Line label="Break-even Mortgage (PCM)" value={fmt(r.beMortPCM)} color="accent" bold />
+                  <Line label="Break-even as % of Rent" value={pct(r.beMortPct)} color="accent" />
+                  <Line label="Effective Tax on Gross Rent" value={pct(r.rentA > 0 ? (r.tax / r.rentA) * 100 : 0)} />
+                </Card>
+              </div>
+            )}
+
+            {/* OPTIMISE */}
+            {tab === 2 && (
+              <div>
+                <Card title="Health Check" icon="📊" gold>
+                  {[
+                    { label: "Expenses > 5% of rent", ok: r.totalExp > r.rentA * 0.05 },
+                    { label: "Mortgage < 70% of rent", ok: r.mortA / r.rentA < 0.70 },
+                    { label: "Gross yield ≥ 5%", ok: r.grossYield >= 5 },
+                    { label: "Net cashflow positive", ok: r.netCF > 0 },
+                    { label: "Structure optimised", ok: structure === "ltd" || r.marginalRate <= 20 },
+                  ].map((item, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < 4 ? `1px solid ${C.border}` : "none" }}>
+                      <span style={{ fontSize: 16, color: item.ok ? C.green : C.red, flexShrink: 0 }}>{item.ok ? "✓" : "✗"}</span>
+                      <span style={{ fontSize: 13 }}>{item.label}</span>
+                    </div>
+                  ))}
+                </Card>
+
+                <Card title="Break-Even Mortgage" icon="⚖️">
+                  <div style={{ background: C.inputBg, borderRadius: 10, padding: 14, textAlign: "center", marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: C.muted, marginBottom: 4, textTransform: "uppercase" }}>Max mortgage to stay profitable after tax</div>
+                    <div style={{ fontSize: 34, fontWeight: 800, color: C.accent, fontFamily: "monospace" }}>{fmt(r.beMortPCM)}<span style={{ fontSize: 13, color: C.muted }}>/mo</span></div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{pct(r.beMortPct)} of your rent</div>
+                  </div>
+                  <Tip text={`Your mortgage is ${fmt(mortPCM)}/mo. Break-even is ${fmt(r.beMortPCM)}/mo — you ${mortPCM <= r.beMortPCM ? "are inside the profitable zone ✓" : "are over the break-even and making a loss after tax"}.`} type={mortPCM <= r.beMortPCM ? "good" : "warn"} />
+                </Card>
+
+                {structure === "personal" && r.ltdSaving !== null && (
+                  <Card title="Ltd Company vs Personal" icon="🏢">
+                    <Line label="Current net (personal)" value={fmt(r.netCF)} />
+                    <Line label="Estimated net (Ltd)" value={fmt(r.netCF + r.ltdSaving)} color={r.ltdSaving > 0 ? "green" : "red"} />
+                    <Line label="Annual saving" value={fmt(r.ltdSaving)} color={r.ltdSaving > 0 ? "green" : "red"} bold hr />
+                    {r.ltdSaving > 0
+                      ? <Tip text={`Ltd structure could save ~${fmt(r.ltdSaving)}/yr. Transferring existing property triggers SDLT + potential CGT — get an accountant's numbers first.`} type="good" />
+                      : <Tip text="At your current numbers a Ltd company doesn't show a clear cashflow advantage. Extra accountancy costs may not be worth it." type="info" />
+                    }
+                  </Card>
+                )}
+
+                <Card title="10 Optimisation Actions" icon="📌">
+                  <AccordionTip num="01" title="Maximise Allowable Expenses">
+                    <Tip text="Every £1 of legitimate expense cuts taxable profit directly. Claim: agent fees, all insurance, repairs, accountancy, mileage to inspect, phone (pro-rated), cleaning between tenancies, advertising, inventory checks." type="good" />
+                  </AccordionTip>
+                  <AccordionTip num="02" title="Replacement of Domestic Items (RDIR)">
+                    <Tip text="Replacing sofas, white goods, carpets, curtains, beds — the replacement cost is fully deductible. The original purchase is NOT. Keep every receipt." type="info" />
+                  </AccordionTip>
+                  <AccordionTip num="03" title="Repairs vs Capital Improvements">
+                    <Tip text="Repairs = fully deductible now. Improvements = not deductible (but reduce CGT on sale). Like-for-like boiler = repair. Loft conversion = improvement. HMRC scrutinise this hard." type="warn" />
+                  </AccordionTip>
+                  {structure === "personal" && r.marginalRate >= 40 && (
+                    <AccordionTip num="04" title="Incorporate into Ltd Company (SPV)">
+                      <Tip text={`You are a ${r.marginalRate}% taxpayer getting only 20% interest relief. Incorporation restores full deductibility. Transfer costs: SDLT on market value + potential CGT. For new purchases — always use Ltd from day one.`} type="warn" />
+                    </AccordionTip>
+                  )}
+                  <AccordionTip num="05" title="Interest-Only Mortgage">
+                    <Tip text="With interest-only, 100% of your payment qualifies for the Section 24 credit. With repayment, the capital portion gets zero relief — it builds equity but gives you nothing on your tax bill." type="info" />
+                  </AccordionTip>
+                  <AccordionTip num="06" title="Mortgage Arrangement Fees">
+                    <Tip text="Arrangement and broker fees ARE fully deductible as allowable expenses — unlike the interest. Claim in full the year paid, or amortise if added to the loan." type="good" />
+                  </AccordionTip>
+                  <AccordionTip num="07" title="Personal Allowance Trap (£100k+)">
+                    <Tip text="Above £100k total income you lose £1 personal allowance per £2 earned — creating a 60% effective rate. Section 24 inflates your rental profit and can push you over this threshold even on modest real cash profit." type="warn" />
+                  </AccordionTip>
+                  <AccordionTip num="08" title="Loss Carry Forward">
+                    <Tip text="Tax losses carry forward indefinitely against future rental profits. Cannot offset other income. Track voids and heavy repair years carefully." type="info" />
+                  </AccordionTip>
+                  <AccordionTip num="09" title="Making Tax Digital (MTD)">
+                    <Tip text="From April 2026: mandatory for gross rental income above £50k. Quarterly digital submissions to HMRC. Get compliant software now — Landlord Studio, Xero or QuickBooks Property all work." type="warn" />
+                  </AccordionTip>
+                  <AccordionTip num="10" title="Capital Gains Tax on Sale">
+                    <Tip text="CGT: 18% (basic rate) or 24% (higher rate) on residential gains. Annual exempt amount £3,000. Consider timing the sale in a low-income year, gifting to a lower-rate spouse, or Ltd company structure. No main residence relief on BTL." type="info" />
+                  </AccordionTip>
+                </Card>
+
+                <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 12, fontSize: 10, color: C.muted, lineHeight: 1.6, marginBottom: 4 }}>
+                  <strong style={{ color: C.accentDim }}>Disclaimer:</strong> Illustrative purposes only. Tax law changes. Always consult a qualified accountant. Based on 2025/26 UK rules.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Nav */}
+          <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: C.card, borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 100 }}>
+            {[{ icon: "📋", label: "Inputs" }, { icon: "📊", label: "Results" }, { icon: "🎯", label: "Optimise" }].map((n, i) => (
+              <button key={i} onClick={() => setTab(i)} style={{ flex: 1, background: "transparent", border: "none", padding: "10px 0 8px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                <span style={{ fontSize: 20 }}>{n.icon}</span>
+                <span style={{ fontSize: 10, color: tab === i ? C.accent : C.muted, fontWeight: tab === i ? 700 : 400 }}>{n.label}</span>
+                {tab === i && <div style={{ width: 24, height: 2, background: C.accent, borderRadius: 2 }} />}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
