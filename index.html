@@ -420,330 +420,422 @@ function exportPDF(){
   const profitable = r.netCF > 0;
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
-  const W=210, M=14, CW=W-M*2;
+  const W=210, M=12, CW=W-M*2;
   let y=0;
 
-  // ── Helpers ──
-  function newPageIfNeeded(space){
-    if(y+space>278){doc.addPage();y=20;return true;}
+  // ── Colour palette: light background, dark text ──
+  const BLACK=[30,30,35], DARK=[55,60,70], MID=[100,105,115], LIGHT=[150,155,165];
+  const GOLD=[180,140,40], GREEN=[40,140,80], RED=[180,55,55], BLUE=[60,100,180];
+  const BG_PAGE=[252,252,250];        // near-white page
+  const BG_HEADER=[245,243,235];      // very pale gold for section headers
+  const BG_ALT=[246,247,249];         // barely-there blue-grey for alt rows
+  const BG_HERO_G=[235,248,240];      // pale green hero
+  const BG_HERO_R=[250,238,238];      // pale red hero
+  const BORDER=[210,212,218];         // subtle border
+
+  // Page background
+  function pageBG(){
+    doc.setFillColor(BG_PAGE[0],BG_PAGE[1],BG_PAGE[2]);
+    doc.rect(0,0,W,297,'F');
+  }
+  pageBG();
+
+  function newPage(){
+    doc.addPage();
+    pageBG();
+    y=10;
+  }
+
+  function checkPage(need){
+    if(y+need>282){newPage();return true;}
     return false;
   }
 
-  // Alternating row background
-  let rowIdx=0;
-  function dataRow(label,value,opts){
+  // ── Section header ──
+  function secHead(title, color){
+    checkPage(10);
+    y+=2;
+    doc.setFillColor(BG_HEADER[0],BG_HEADER[1],BG_HEADER[2]);
+    doc.rect(M,y,CW,7,'F');
+    const cc=color||BLUE;
+    doc.setFillColor(cc[0],cc[1],cc[2]);
+    doc.rect(M,y,2.5,7,'F');
+    doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+    doc.setTextColor(cc[0],cc[1],cc[2]);
+    doc.text(title.toUpperCase(), M+5, y+4.8);
+    y+=9;
+  }
+
+  // ── Data row ──
+  let rowAlt=0;
+  function dRow(label, value, opts){
     opts=opts||{};
-    newPageIfNeeded(7);
-    const h=opts.tall?8:6.5;
-    // Alternating background
-    if(rowIdx%2===0){
-      doc.setFillColor(24,27,38);
-      doc.rect(M,y-4,CW,h,'F');
+    checkPage(7);
+    const h=opts.tall?8:6;
+    if(opts.alt===undefined?rowAlt%2===1:opts.alt){
+      doc.setFillColor(BG_ALT[0],BG_ALT[1],BG_ALT[2]);
+      doc.rect(M,y,CW,h,'F');
     }
-    rowIdx++;
-    // Left accent bar for bold rows
-    if(opts.bold){
-      doc.setFillColor(201,168,76);
-      doc.rect(M,y-4,2,h,'F');
-    }
-    const indent = opts.indent ? M+6 : M+3;
+    rowAlt++;
+    const lx = opts.indent ? M+5 : M+2;
     doc.setFontSize(opts.bold?8.5:7.5);
     doc.setFont('helvetica',opts.bold?'bold':'normal');
-    doc.setTextColor(opts.bold?234:160, opts.bold?234:160, opts.bold?234:160);
-    doc.text(label, indent, y);
-    // Value colour
-    const vc = opts.color==='red'?[210,70,70]:opts.color==='green'?[61,186,130]:opts.color==='accent'?[201,168,76]:[234,234,234];
+    doc.setTextColor(opts.bold?BLACK[0]:DARK[0], opts.bold?BLACK[1]:DARK[1], opts.bold?BLACK[2]:DARK[2]);
+    doc.text(label, lx, y+h-1.5);
+    const vc=opts.col==='red'?RED:opts.col==='green'?GREEN:opts.col==='gold'?GOLD:opts.bold?BLACK:DARK;
     doc.setTextColor(vc[0],vc[1],vc[2]);
     doc.setFont('helvetica',opts.bold?'bold':'normal');
-    doc.text(value, W-M-2, y, {align:'right'});
+    doc.text(value, W-M-1, y+h-1.5, {align:'right'});
     y+=h;
   }
 
-  function sectionHeader(title, color){
-    newPageIfNeeded(12);
-    rowIdx=0;
-    y+=3;
-    const cc = color||[91,141,238];
-    doc.setFillColor(cc[0],cc[1],cc[2],0.15);
-    doc.setFillColor(20,24,36);
-    doc.rect(M,y-5,CW,9,'F');
-    // Left accent
-    doc.setFillColor(cc[0],cc[1],cc[2]);
-    doc.rect(M,y-5,3,9,'F');
-    doc.setFontSize(8);doc.setFont('helvetica','bold');
-    doc.setTextColor(cc[0],cc[1],cc[2]);
-    doc.text(title.toUpperCase(), M+6, y);
-    y+=7;
-  }
-
   function hairline(){
-    doc.setDrawColor(50,55,70);doc.setLineWidth(0.2);
-    doc.line(M,y-1,W-M,y-1);
+    doc.setDrawColor(BORDER[0],BORDER[1],BORDER[2]);
+    doc.setLineWidth(0.2);
+    doc.line(M,y,W-M,y);
+    y+=1;
   }
 
-  function spacer(n){ y+=n||3; }
+  function gap(n){y+=n||2;}
 
-  // ══ PAGE 1 ══════════════════════════════════════════════════
+  // ════════════════════════════════════════════════
+  // PAGE 1
+  // ════════════════════════════════════════════════
 
-  // Header bar
-  doc.setFillColor(15,17,26);
-  doc.rect(0,0,W,22,'F');
-  doc.setFillColor(201,168,76);
-  doc.rect(0,0,4,22,'F');
-  doc.setFontSize(18);doc.setFont('helvetica','bold');
-  doc.setTextColor(201,168,76);
-  doc.text('BuTLer',M+2,14);
+  // ── Header ──
+  doc.setFillColor(40,44,58);
+  doc.rect(0,0,W,18,'F');
+  doc.setFillColor(GOLD[0],GOLD[1],GOLD[2]);
+  doc.rect(0,0,3,18,'F');
+  doc.setFontSize(16);doc.setFont('helvetica','bold');
+  doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+  doc.text('BuTLer', M+2, 12);
   doc.setFontSize(8);doc.setFont('helvetica','normal');
-  doc.setTextColor(140,145,165);
-  doc.text('UK Buy-to-Let Tax Calculator  |  2025/26  |  Section 24',M+30,10);
-  doc.text('Report generated: '+dateStr, W-M, 10, {align:'right'});
-  doc.text('Property value: '+fmt(propVal)+'  |  Rent: '+fmt(rentPCM)+'/mo  |  Structure: '+(structure==='personal'?'Personal':'Ltd Company'), M+30,17);
-  y=30;
+  doc.setTextColor(200,202,210);
+  doc.text('UK Buy-to-Let Tax Calculator  |  2025/26  |  Section 24', M+22, 8);
+  doc.text('Report: '+dateStr+'  |  '+fmt(propVal)+'  |  '+fmt(rentPCM)+'/mo  |  '+(structure==='personal'?'Personal Name':'Ltd Company'), M+22, 14);
+  y=24;
 
-  // Hero cashflow box
-  const heroH=26;
-  doc.setFillColor(profitable?12:38, profitable?32:12, profitable?22:12);
-  doc.roundedRect(M,y,CW,heroH,3,3,'F');
-  doc.setDrawColor(profitable?61:192, profitable?186:64, profitable?130:64);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(M,y,CW,heroH,3,3,'S');
+  // ── Hero ──
+  const hc = profitable ? BG_HERO_G : BG_HERO_R;
+  const hv = profitable ? GREEN : RED;
+  doc.setFillColor(hc[0],hc[1],hc[2]);
+  doc.roundedRect(M,y,CW,20,2,2,'F');
+  doc.setDrawColor(hv[0],hv[1],hv[2]);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(M,y,CW,20,2,2,'S');
+  doc.setFontSize(7);doc.setFont('helvetica','normal');
+  doc.setTextColor(MID[0],MID[1],MID[2]);
+  doc.text('MONTHLY NET CASHFLOW AFTER TAX', W/2, y+6, {align:'center'});
+  doc.setFontSize(20);doc.setFont('helvetica','bold');
+  doc.setTextColor(hv[0],hv[1],hv[2]);
+  doc.text(fmt(r.netPCM), W/2, y+15, {align:'center'});
   doc.setFontSize(7.5);doc.setFont('helvetica','normal');
-  doc.setTextColor(130,135,155);
-  doc.text('MONTHLY NET CASHFLOW AFTER TAX', W/2, y+7, {align:'center'});
-  doc.setFontSize(22);doc.setFont('helvetica','bold');
-  doc.setTextColor(profitable?61:210, profitable?186:70, profitable?130:70);
-  doc.text(fmt(r.netPCM), W/2, y+18, {align:'center'});
-  doc.setFontSize(8);doc.setFont('helvetica','normal');
-  doc.setTextColor(130,135,155);
-  doc.text(fmt(r.netCF)+' per year', W/2, y+24, {align:'center'});
-  y+=heroH+5;
+  doc.setTextColor(MID[0],MID[1],MID[2]);
+  doc.text(fmt(r.netCF)+' per year', W/2, y+19, {align:'center'});
+  y+=24;
 
-  // 4 stat boxes
+  // ── 4 stat boxes ──
   const stats=[
-    ['Annual Net','Cashflow',fmt(r.netCF),'accent'],
-    ['Gross','Yield',pct(r.grossYield),r.grossYield>=5?'green':'accent'],
-    ['Net','Yield',pct(r.netYield),r.netYield>3?'green':r.netYield>0?'accent':'red'],
-    ['Effective','Tax Rate',pct(r.rentA>0?(r.tax/r.rentA)*100:0),'']
+    ['Annual Net Cashflow', fmt(r.netCF), r.netCF>0?GREEN:RED],
+    ['Gross Yield', pct(r.grossYield), r.grossYield>=5?GREEN:GOLD],
+    ['Net Yield', pct(r.netYield), r.netYield>3?GREEN:r.netYield>0?GOLD:RED],
+    ['Effective Tax Rate', pct(r.rentA>0?(r.tax/r.rentA)*100:0), BLUE]
   ];
   const sw=CW/4;
   stats.forEach((s,i)=>{
-    const x=M+i*sw;
-    doc.setFillColor(22,25,38);
-    doc.roundedRect(x+0.5,y,sw-2,18,2,2,'F');
-    const vc=s[3]==='green'?[61,186,130]:s[3]==='red'?[210,70,70]:[201,168,76];
-    doc.setDrawColor(vc[0],vc[1],vc[2]);
+    const x=M+i*sw+0.5;
+    doc.setFillColor(BG_ALT[0],BG_ALT[1],BG_ALT[2]);
+    doc.roundedRect(x,y,sw-2,14,1.5,1.5,'F');
+    doc.setDrawColor(s[2][0],s[2][1],s[2][2]);
     doc.setLineWidth(0.3);
-    doc.line(x+0.5+4,y+18,x+sw-2-4,y+18);
-    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(120,125,145);
-    doc.text(s[0], x+sw/2-0.5, y+6, {align:'center'});
-    doc.text(s[1], x+sw/2-0.5, y+10, {align:'center'});
-    doc.setFontSize(11);doc.setFont('helvetica','bold');
-    doc.setTextColor(vc[0],vc[1],vc[2]);
-    doc.text(s[2], x+sw/2-0.5, y+16.5, {align:'center'});
+    doc.line(x+4,y+14,x+sw-6,y+14);
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');
+    doc.setTextColor(LIGHT[0],LIGHT[1],LIGHT[2]);
+    doc.text(s[0], x+sw/2-1, y+5.5, {align:'center'});
+    doc.setFontSize(10);doc.setFont('helvetica','bold');
+    doc.setTextColor(s[2][0],s[2][1],s[2][2]);
+    doc.text(s[1], x+sw/2-1, y+12, {align:'center'});
   });
-  y+=24;
+  y+=18;
 
-  // ── Two column layout for inputs + expenses ──
-  const colL=M, colR=M+CW/2+3, colW=(CW-4)/2;
+  // ── Two column: Inputs + Expenses ──
+  const cW2=(CW-4)/2, cL=M, cR=M+cW2+4;
 
-  // Left col header
-  doc.setFillColor(20,24,36);
-  doc.rect(colL,y-1,colW,8,'F');
-  doc.setFillColor(91,141,238);doc.rect(colL,y-1,3,8,'F');
-  doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(91,141,238);
-  doc.text('PROPERTY & MORTGAGE', colL+5, y+4.5);
+  // Col headers
+  doc.setFillColor(BG_HEADER[0],BG_HEADER[1],BG_HEADER[2]);
+  doc.rect(cL,y,cW2,7,'F');
+  doc.rect(cR,y,cW2,7,'F');
+  doc.setFillColor(BLUE[0],BLUE[1],BLUE[2]);
+  doc.rect(cL,y,2.5,7,'F');
+  doc.rect(cR,y,2.5,7,'F');
+  doc.setFontSize(7);doc.setFont('helvetica','bold');
+  doc.setTextColor(BLUE[0],BLUE[1],BLUE[2]);
+  doc.text('PROPERTY & MORTGAGE', cL+4, y+4.8);
+  doc.text('ALLOWABLE EXPENSES', cR+4, y+4.8);
+  y+=8;
 
-  // Right col header
-  doc.setFillColor(20,24,36);
-  doc.rect(colR,y-1,colW,8,'F');
-  doc.setFillColor(91,141,238);doc.rect(colR,y-1,3,8,'F');
-  doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(91,141,238);
-  doc.text('ALLOWABLE EXPENSES', colR+5, y+4.5);
-  y+=10;
-
-  // Two column data
-  const leftRows=[
+  const lRows=[
     ['Monthly Rent', fmt(rentPCM)+'/mo'],
     ['Property Value', fmt(propVal)],
-    ['Other Income', fmt(otherIncome)+'/yr'],
+    ['Other Income (annual)', fmt(otherIncome)],
     ['Mortgage Payment', fmt(mortPCM)+'/mo'],
     ['Interest Rate', mortRate+'% p.a.'],
     ['Mortgage Type', mortType==='io'?'Interest Only':'Repayment'],
-    ...(mortType==='repay'?[['Annual Interest', fmt(repayInt)+'/yr']]:[]),
-    ['Structure', structure==='personal'?'Personal':'Ltd Co'],
+    ...(mortType==='repay'?[['Annual Interest Paid', fmt(repayInt)+'/yr']]:[]),
+    ['Ownership Structure', structure==='personal'?'Personal Name':'Ltd Company'],
   ];
-  const rightRows=[
-    ['Agent Fees', agentPct+'% ('+fmt(r.agentFees)+'/yr)'],
-    ['Insurance', fmt(insurePCM)+'/mo'],
-    ['Repairs', fmt(repairsPA)+'/yr'],
-    ['Ground Rent', fmt(groundPA)+'/yr'],
-    ['Other', fmt(otherExpPA)+'/yr'],
-    ['',''],
+  const rRows=[
+    ['Letting Agent Fees', agentPct+'% = '+fmt(r.agentFees)+'/yr'],
+    ['Landlord Insurance', fmt(insurePCM)+'/mo'],
+    ['Repairs & Maintenance', fmt(repairsPA)+'/yr'],
+    ['Ground Rent / Service', fmt(groundPA)+'/yr'],
+    ['Other Expenses', fmt(otherExpPA)+'/yr'],
+    ['─────────────', '──────────'],
     ['TOTAL EXPENSES', fmt(r.totalExp)+'/yr'],
   ];
-  const maxRows=Math.max(leftRows.length,rightRows.length);
-  for(let i=0;i<maxRows;i++){
-    const rowH=6;
+  const maxR=Math.max(lRows.length,rRows.length);
+  for(let i=0;i<maxR;i++){
+    const rh=5.5;
     if(i%2===0){
-      doc.setFillColor(24,27,38);
-      doc.rect(colL,y-3.5,colW,rowH,'F');
-      doc.rect(colR,y-3.5,colW,rowH,'F');
+      doc.setFillColor(BG_ALT[0],BG_ALT[1],BG_ALT[2]);
+      doc.rect(cL,y,cW2,rh,'F');
+      doc.rect(cR,y,cW2,rh,'F');
     }
-    if(i<leftRows.length){
-      const isBold=i===leftRows.length-1&&false;
-      doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,160,170);
-      doc.text(leftRows[i][0], colL+3, y);
-      doc.setTextColor(220,220,230);
-      doc.text(leftRows[i][1], colL+colW-1, y, {align:'right'});
+    if(i<lRows.length){
+      doc.setFontSize(7);doc.setFont('helvetica','normal');
+      doc.setTextColor(MID[0],MID[1],MID[2]);
+      doc.text(lRows[i][0], cL+3, y+3.8);
+      doc.setTextColor(BLACK[0],BLACK[1],BLACK[2]);
+      doc.text(lRows[i][1], cL+cW2-1, y+3.8, {align:'right'});
     }
-    if(i<rightRows.length){
-      const isTotal=rightRows[i][0]==='TOTAL EXPENSES';
+    if(i<rRows.length){
+      const isTotal=rRows[i][0]==='TOTAL EXPENSES';
       doc.setFontSize(7);doc.setFont('helvetica',isTotal?'bold':'normal');
-      doc.setTextColor(isTotal?201:160,isTotal?168:160,isTotal?76:170);
-      doc.text(rightRows[i][0], colR+3, y);
-      doc.setTextColor(isTotal?201:220,isTotal?168:220,isTotal?76:230);
-      doc.text(rightRows[i][1], colR+colW-1, y, {align:'right'});
+      doc.setTextColor(isTotal?GOLD[0]:MID[0],isTotal?GOLD[1]:MID[1],isTotal?GOLD[2]:MID[2]);
+      doc.text(rRows[i][0], cR+3, y+3.8);
+      doc.setTextColor(isTotal?GOLD[0]:BLACK[0],isTotal?GOLD[1]:BLACK[1],isTotal?GOLD[2]:BLACK[2]);
+      doc.text(rRows[i][1], cR+cW2-1, y+3.8, {align:'right'});
     }
+    y+=rh;
+  }
+  gap(2);
+
+  // ── Tax + Cashflow side by side ──
+  // Tax (left half)
+  doc.setFillColor(BG_HEADER[0],BG_HEADER[1],BG_HEADER[2]);
+  doc.rect(cL,y,cW2,7,'F');
+  doc.setFillColor(BLUE[0],BLUE[1],BLUE[2]);doc.rect(cL,y,2.5,7,'F');
+  doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(BLUE[0],BLUE[1],BLUE[2]);
+  doc.text('TAX CALCULATION', cL+4, y+4.8);
+  // Cashflow (right half)
+  doc.setFillColor(BG_HEADER[0],BG_HEADER[1],BG_HEADER[2]);
+  doc.rect(cR,y,cW2,7,'F');
+  doc.setFillColor(BLUE[0],BLUE[1],BLUE[2]);doc.rect(cR,y,2.5,7,'F');
+  doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(BLUE[0],BLUE[1],BLUE[2]);
+  doc.text('CASHFLOW SUMMARY', cR+4, y+4.8);
+  y+=8;
+
+  const taxRows=structure==='personal'?[
+    ['Gross Rent', fmt(r.rentA), false, 'gold'],
+    ['Less: Expenses', '-'+fmt(r.totalExp), false, 'red'],
+    ...(structure==='ltd'?[['Less: Interest', '-'+fmt(r.interestA), false, 'red']]:[]),
+    ['Taxable Profit', fmt(r.taxableProfit), true, r.taxableProfit>0?'gold':'red'],
+    ['Marginal Rate', r.marginalRate+'%', false, ''],
+    ['Tax on Rental', fmt(r.tax+r.taxCredit), false, 'red'],
+    ['S.24 Credit (20%)', '-'+fmt(r.taxCredit), false, 'green'],
+    ['Net Tax Liability', fmt(r.tax), true, 'red'],
+    ...(r.s24Penalty>0?[['S.24 Penalty vs 2017', fmt(r.s24Penalty)+'/yr', false, 'red']]:[]),
+  ]:[
+    ['Gross Rent', fmt(r.rentA), false, 'gold'],
+    ['Less: Expenses', '-'+fmt(r.totalExp), false, 'red'],
+    ['Less: Interest', '-'+fmt(r.interestA), false, 'red'],
+    ['Taxable Profit', fmt(r.taxableProfit), true, r.taxableProfit>0?'gold':'red'],
+    ['Corporation Tax', fmt(r.corpTax), true, 'red'],
+  ];
+
+  const cfRows=[
+    ['Gross Rent', fmt(r.rentA), false, ''],
+    ['Mortgage Payments', '-'+fmt(r.mortA), false, 'red'],
+    ['Running Expenses', '-'+fmt(r.totalExp), false, 'red'],
+    ['Gross CF (pre-tax)', fmt(r.grossCF), false, r.grossCF>0?'gold':'red'],
+    ['Tax Liability', '-'+fmt(r.tax), false, 'red'],
+    ['Net Annual CF', fmt(r.netCF), true, profitable?'green':'red'],
+    ['Net Monthly CF', fmt(r.netPCM), true, profitable?'green':'red'],
+  ];
+
+  const maxTC=Math.max(taxRows.length,cfRows.length);
+  let altTC=0;
+  for(let i=0;i<maxTC;i++){
+    const rh=5.5;
+    if(altTC%2===0){
+      doc.setFillColor(BG_ALT[0],BG_ALT[1],BG_ALT[2]);
+      doc.rect(cL,y,cW2,rh,'F');
+      doc.rect(cR,y,cW2,rh,'F');
+    }
+    altTC++;
+    function miniRow(x,w,row){
+      if(!row)return;
+      const vc=row[3]==='red'?RED:row[3]==='green'?GREEN:row[3]==='gold'?GOLD:DARK;
+      doc.setFontSize(7);doc.setFont('helvetica',row[2]?'bold':'normal');
+      doc.setTextColor(row[2]?BLACK[0]:MID[0],row[2]?BLACK[1]:MID[1],row[2]?BLACK[2]:MID[2]);
+      doc.text(row[0], x+3, y+3.8);
+      doc.setTextColor(vc[0],vc[1],vc[2]);
+      doc.text(row[1], x+w-1, y+3.8, {align:'right'});
+    }
+    miniRow(cL,cW2,taxRows[i]);
+    miniRow(cR,cW2,cfRows[i]);
+    y+=rh;
+  }
+  gap(2);
+
+  // ── Ratios + Ltd + Health Check side by side ──
+  doc.setFillColor(BG_HEADER[0],BG_HEADER[1],BG_HEADER[2]);
+  doc.rect(cL,y,cW2,7,'F');
+  doc.setFillColor(GOLD[0],GOLD[1],GOLD[2]);doc.rect(cL,y,2.5,7,'F');
+  doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+  doc.text('KEY RATIOS & BREAK-EVEN', cL+4, y+4.8);
+
+  doc.setFillColor(BG_HEADER[0],BG_HEADER[1],BG_HEADER[2]);
+  doc.rect(cR,y,cW2,7,'F');
+  doc.setFillColor(GREEN[0],GREEN[1],GREEN[2]);doc.rect(cR,y,2.5,7,'F');
+  doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(GREEN[0],GREEN[1],GREEN[2]);
+  doc.text('HEALTH CHECK', cR+4, y+4.8);
+  y+=8;
+
+  const ratioRows=[
+    ['Gross Yield', pct(r.grossYield), r.grossYield>=5?'green':'gold'],
+    ['Net Yield', pct(r.netYield), r.netYield>3?'green':r.netYield>0?'gold':'red'],
+    ['Mortgage as % of Rent', pct((r.mortA/r.rentA)*100), ''],
+    ['Break-Even Mortgage', fmt(r.beMortPCM)+'/mo', 'gold'],
+    ['Break-Even % of Rent', pct(r.beMortPct), 'gold'],
+    ...(r.ltdSaving!==null&&structure==='personal'?[
+      ['Ltd Annual Saving', fmt(r.ltdSaving), r.ltdSaving>0?'green':'red'],
+    ]:[]),
+  ];
+
+  const checks=[
+    {l:'Expenses > 5% of rent', ok:r.totalExp>r.rentA*.05},
+    {l:'Mortgage < 70% of rent', ok:r.mortA/r.rentA<.70},
+    {l:'Gross yield >= 5%', ok:r.grossYield>=5},
+    {l:'Net cashflow positive', ok:r.netCF>0},
+    {l:'Structure optimised', ok:structure==='ltd'||r.marginalRate<=20},
+  ];
+
+  const maxRC=Math.max(ratioRows.length,checks.length);
+  let altRC=0;
+  for(let i=0;i<maxRC;i++){
+    const rh=5.5;
+    if(altRC%2===0){
+      doc.setFillColor(BG_ALT[0],BG_ALT[1],BG_ALT[2]);
+      doc.rect(cL,y,cW2,rh,'F');
+      doc.rect(cR,y,cW2,rh,'F');
+    }
+    altRC++;
+    if(i<ratioRows.length){
+      const rr=ratioRows[i];
+      const vc=rr[2]==='green'?GREEN:rr[2]==='gold'?GOLD:rr[2]==='red'?RED:DARK;
+      doc.setFontSize(7);doc.setFont('helvetica','normal');
+      doc.setTextColor(MID[0],MID[1],MID[2]);
+      doc.text(rr[0], cL+3, y+3.8);
+      doc.setTextColor(vc[0],vc[1],vc[2]);
+      doc.text(rr[1], cL+cW2-1, y+3.8, {align:'right'});
+    }
+    if(i<checks.length){
+      const ch=checks[i];
+      doc.setFillColor(ch.ok?GREEN[0]:RED[0],ch.ok?GREEN[1]:RED[1],ch.ok?GREEN[2]:RED[2]);
+      doc.circle(cR+4, y+2.5, 1.5, 'F');
+      doc.setFontSize(7);doc.setFont('helvetica','normal');
+      doc.setTextColor(BLACK[0],BLACK[1],BLACK[2]);
+      doc.text(ch.l, cR+8, y+3.8);
+    }
+    y+=rh;
+  }
+
+  // ════════════════════════════════════════════════
+  // PAGE 2 — Optimisation Actions
+  // ════════════════════════════════════════════════
+  newPage();
+
+  // Page 2 mini-header
+  doc.setFillColor(40,44,58);
+  doc.rect(0,0,W,12,'F');
+  doc.setFillColor(GOLD[0],GOLD[1],GOLD[2]);doc.rect(0,0,3,12,'F');
+  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
+  doc.text('BuTLer', M+2, 8.5);
+  doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(190,195,205);
+  doc.text('Optimisation Actions  |  '+dateStr, M+18, 8.5);
+  y=18;
+
+  secHead('Optimisation Actions for Your Property', BLUE);
+
+  const tips=[
+    ['01','Maximise Allowable Expenses','good','Every pound of legitimate expense cuts taxable profit directly. Claim: agent fees, all insurance, repairs, accountancy, mileage to inspect, phone (pro-rated), cleaning between tenancies, advertising and inventory checks.'],
+    ['02','Replacement of Domestic Items (RDIR)','info','Replacing sofas, white goods, carpets, curtains and beds — the replacement cost is fully deductible. The original purchase is NOT. Keep every receipt.'],
+    ['03','Repairs vs Capital Improvements','warn','Repairs are fully deductible. Improvements are not (but reduce CGT on sale). Like-for-like boiler = repair. Loft conversion = improvement. HMRC scrutinise this hard.'],
+    ...(structure==='personal'&&r.marginalRate>=40?[['04','Incorporate into Ltd Company (SPV)','warn','You are a '+r.marginalRate+'% taxpayer getting 20% interest relief. Incorporation restores full deductibility. Costs: SDLT + potential CGT on transfer. For new purchases always buy via Ltd from day one.']]:[]),
+    ['05','Interest-Only Mortgage','info','With interest-only, 100% of your payment qualifies for the Section 24 credit. With repayment, the capital portion gets zero relief — it builds equity but nothing off your tax bill.'],
+    ['06','Mortgage Arrangement Fees','good','Arrangement and broker fees are fully deductible as allowable expenses. Claim in full the year paid, or amortise if the lender adds them to the loan.'],
+    ['07','Personal Allowance Trap (above £100k)','warn','Above £100k you lose £1 personal allowance per £2 earned — a 60% effective rate. Section 24 inflates your taxable profit and can push you over this threshold even on modest real cash profit.'],
+    ['08','Loss Carry Forward','info','Tax losses carry forward indefinitely against future rental profits. Cannot offset other income. Track void periods and heavy repair years carefully.'],
+    ['09','Making Tax Digital (MTD)','warn','From April 2026: mandatory for gross rental income above £50k. Quarterly digital submissions to HMRC. Get compliant software now — Landlord Studio, Xero or QuickBooks Property all work.'],
+    ['10','Capital Gains Tax on Sale','info','CGT: 18% (basic) or 24% (higher rate) on residential gains. Annual exempt amount £3,000 for 2025/26. Consider timing in a low-income year, gifting to a lower-rate spouse, or Ltd structure. No main residence relief on BTL.'],
+  ];
+
+  // Two column tips layout
+  const tCW=(CW-4)/2;
+  const tL=M, tR=M+tCW+4;
+  let leftTips=[], rightTips=[];
+  tips.forEach((t,i)=>{ if(i%2===0) leftTips.push(t); else rightTips.push(t); });
+
+  const maxTips=Math.max(leftTips.length,rightTips.length);
+  for(let i=0;i<maxTips;i++){
+    const drawTip=(t,x,w)=>{
+      if(!t)return 0;
+      const tc=t[2]==='warn'?[200,120,30]:t[2]==='good'?[40,140,80]:[60,100,180];
+      const wrapped=doc.splitTextToSize(t[3],w-8);
+      const bh=7+wrapped.length*3.8+3;
+      // Light tinted background
+      const bg=t[2]==='warn'?[255,250,242]:t[2]==='good'?[242,252,246]:[242,246,255];
+      doc.setFillColor(bg[0],bg[1],bg[2]);
+      doc.roundedRect(x,y,w,bh,1.5,1.5,'F');
+      doc.setDrawColor(tc[0]+30,tc[1]+30,tc[2]+30);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(x,y,w,bh,1.5,1.5,'S');
+      doc.setFillColor(tc[0],tc[1],tc[2]);
+      doc.roundedRect(x,y,3,bh,1,1,'F');
+      // Number
+      doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(tc[0],tc[1],tc[2]);
+      doc.text(t[0],x+5,y+5);
+      // Title
+      doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(BLACK[0],BLACK[1],BLACK[2]);
+      doc.text(t[1],x+12,y+5);
+      // Body
+      doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(DARK[0],DARK[1],DARK[2]);
+      let ty=y+9;
+      wrapped.forEach(ln=>{doc.text(ln,x+4,ty);ty+=3.8;});
+      return bh+2;
+    };
+
+    const lh=leftTips[i]?doc.splitTextToSize(leftTips[i][3],tCW-8).length*3.8+12:0;
+    const rh=rightTips[i]?doc.splitTextToSize(rightTips[i][3],tCW-8).length*3.8+12:0;
+    const rowH=Math.max(lh,rh)+1;
+    checkPage(rowH);
+    drawTip(leftTips[i],tL,tCW);
+    drawTip(rightTips[i],tR,tCW);
     y+=rowH;
   }
-  spacer(4);
 
-  // ── Tax Calculation ──
-  sectionHeader('Tax Calculation',[91,141,238]);
-  dataRow('Gross Annual Rent', fmt(r.rentA), {color:'accent',bold:false});
-  dataRow('Less: Total Allowable Expenses', '-'+fmt(r.totalExp), {color:'red',indent:true});
-  if(structure==='ltd') dataRow('Less: Mortgage Interest', '-'+fmt(r.interestA), {color:'red',indent:true});
-  hairline(); spacer(2);
-  dataRow('Taxable Profit', fmt(r.taxableProfit), {bold:true,color:r.taxableProfit>0?'accent':'red'});
-  spacer(1);
-  if(structure==='personal'){
-    dataRow('Marginal Income Tax Rate', r.marginalRate+'%');
-    dataRow('Income Tax on Rental Profit', fmt(r.tax+r.taxCredit), {color:'red'});
-    dataRow('Section 24 Tax Credit (20% of interest)', '-'+fmt(r.taxCredit), {color:'green'});
-    hairline(); spacer(2);
-    dataRow('Net Tax Liability', fmt(r.tax), {bold:true,color:'red'});
-    if(r.s24Penalty>0){
-      spacer(1);
-      dataRow('Section 24 extra cost vs pre-2017 rules', fmt(r.s24Penalty)+'/yr', {color:'red'});
-    }
-  } else {
-    dataRow('Corporation Tax (19-25%)', fmt(r.corpTax), {bold:true,color:'red'});
-  }
-  spacer(2);
-
-  // ── Cashflow Summary ──
-  sectionHeader('Cashflow Summary',[91,141,238]);
-  dataRow('Gross Annual Rent', fmt(r.rentA));
-  dataRow('Mortgage Payments', '-'+fmt(r.mortA), {color:'red',indent:true});
-  dataRow('Running Expenses', '-'+fmt(r.totalExp), {color:'red',indent:true});
-  hairline(); spacer(2);
-  dataRow('Gross Cashflow (pre-tax)', fmt(r.grossCF), {color:r.grossCF>0?'accent':'red'});
-  dataRow('Tax Liability', '-'+fmt(r.tax), {color:'red',indent:true});
-  hairline(); spacer(2);
-  dataRow('Net Annual Cashflow', fmt(r.netCF), {bold:true,color:profitable?'green':'red',tall:true});
-  dataRow('Net Monthly Cashflow', fmt(r.netPCM), {bold:true,color:profitable?'green':'red',tall:true});
-  spacer(2);
-
-  // ── Key Ratios ──
-  sectionHeader('Key Ratios & Break-Even',[201,168,76]);
-  dataRow('Gross Yield', pct(r.grossYield), {color:r.grossYield>=5?'green':'accent'});
-  dataRow('Net Yield (after all costs and tax)', pct(r.netYield), {color:r.netYield>3?'green':r.netYield>0?'accent':'red'});
-  dataRow('Mortgage as % of Rent', pct((r.mortA/r.rentA)*100));
-  dataRow('Break-Even Mortgage (PCM)', fmt(r.beMortPCM)+'/mo  ('+pct(r.beMortPct)+' of rent)', {bold:true,color:'accent',tall:true});
-  spacer(2);
-
-  // ── Ltd Comparison ──
-  if(r.ltdSaving!==null && structure==='personal'){
-    sectionHeader('Ltd Company vs Personal Ownership',[61,186,130]);
-    dataRow('Current net cashflow (personal name)', fmt(r.netCF));
-    dataRow('Estimated net cashflow (limited company)', fmt(r.netCF+r.ltdSaving), {color:r.ltdSaving>0?'green':'red'});
-    hairline(); spacer(2);
-    dataRow('Estimated annual saving from Ltd structure', fmt(r.ltdSaving), {bold:true,color:r.ltdSaving>0?'green':'red',tall:true});
-    spacer(2);
-  }
-
-  // ── Health Check ──
-  sectionHeader('Health Check',[201,168,76]);
-  const checks=[
-    {l:'Expenses are greater than 5% of rent', ok:r.totalExp>r.rentA*.05},
-    {l:'Mortgage is less than 70% of rent', ok:r.mortA/r.rentA<.70},
-    {l:'Gross yield is 5% or above', ok:r.grossYield>=5},
-    {l:'Net cashflow is positive after tax', ok:r.netCF>0},
-    {l:'Ownership structure is optimised for tax', ok:structure==='ltd'||r.marginalRate<=20}
-  ];
-  checks.forEach(ch=>{
-    newPageIfNeeded(7);
-    rowIdx++;
-    if(rowIdx%2===0){doc.setFillColor(24,27,38);doc.rect(M,y-4,CW,6.5,'F');}
-    // Coloured dot instead of tick/cross
-    doc.setFillColor(ch.ok?61:210, ch.ok?186:70, ch.ok?130:70);
-    doc.circle(M+5, y-1, 1.8, 'F');
-    doc.setFontSize(8);doc.setFont('helvetica',ch.ok?'normal':'normal');
-    doc.setTextColor(ch.ok?200:180, ch.ok?230:180, ch.ok?200:180);
-    doc.text((ch.ok?'PASS':'FAIL')+'  '+ch.l, M+10, y);
-    doc.setTextColor(ch.ok?61:210,ch.ok?186:70,ch.ok?130:70);
-    doc.text(ch.ok?'YES':'NO', W-M-2, y, {align:'right'});
-    y+=6.5;
-  });
-  spacer(3);
-
-  // ── Optimisation Actions ──
-  sectionHeader('Optimisation Actions',[91,141,238]);
-
-  const optTips=[
-    ['01','Maximise Allowable Expenses','Every pound of legitimate expense cuts taxable profit directly. Claim: agent fees, all insurance, repairs, accountancy, mileage to inspect property, phone costs (pro-rated), cleaning between tenancies, advertising and inventory checks.','good'],
-    ['02','Replacement of Domestic Items (RDIR)','Replacing sofas, white goods, carpets, curtains and beds — the replacement cost is fully deductible. The original purchase is NOT. Keep every receipt.','info'],
-    ['03','Repairs vs Capital Improvements','Repairs are fully deductible now. Improvements are not deductible against income (but reduce CGT on sale). Like-for-like boiler = repair. Loft conversion = improvement. HMRC scrutinise this distinction hard.','warn'],
-    ...(structure==='personal'&&r.marginalRate>=40?[['04','Incorporate into a Limited Company (SPV)','You are a '+r.marginalRate+'% taxpayer getting only 20% interest relief. Incorporation restores full mortgage interest deductibility. Transfer costs: SDLT on market value plus potential CGT. For new purchases always use Ltd from day one.','warn']]:[] ),
-    ['05','Interest-Only Mortgage Advantage','With interest-only, 100% of your monthly payment qualifies for the Section 24 tax credit. With a repayment mortgage the capital portion gets zero relief — it builds equity but does nothing on your tax bill.','info'],
-    ['06','Mortgage Arrangement Fees','Arrangement and broker fees are fully deductible as allowable expenses — unlike the interest itself. Claim in full in the year paid, or amortise if the lender adds them to the loan.','good'],
-    ['07','Personal Allowance Trap (above £100k)','Above £100k total income you lose £1 of personal allowance per £2 earned, creating a 60% effective marginal rate. Section 24 inflates your taxable profit and can push you over this threshold even on modest real cash profit.','warn'],
-    ['08','Loss Carry Forward','Tax losses in any year carry forward indefinitely against future rental profits. They cannot offset other income such as salary. Track void periods and heavy repair years carefully.','info'],
-    ['09','Making Tax Digital (MTD)','From April 2026: mandatory quarterly digital submissions to HMRC for gross rental income above £50k. Get compliant software now — Landlord Studio, Xero or QuickBooks Property all support MTD.','warn'],
-    ['10','Capital Gains Tax on Sale','CGT rates: 18% (basic rate) or 24% (higher rate) on residential gains. Annual exempt amount is £3,000 for 2025/26. Consider timing the sale in a low-income year, gifting to a lower-rate spouse, or using a Ltd company structure. No main residence relief on BTL.','info'],
-  ];
-
-  optTips.forEach(t=>{
-    const tc=t[3]==='warn'?[224,138,42]:t[3]==='good'?[61,186,130]:[91,141,238];
-    const wrappedDetail = doc.splitTextToSize(t[2], CW-12);
-    const blockH = 7 + wrappedDetail.length*4 + 3;
-    newPageIfNeeded(blockH);
-    // Block background
-    doc.setFillColor(20,23,34);
-    doc.roundedRect(M,y-1,CW,blockH-2,2,2,'F');
-    // Left colour bar
-    doc.setFillColor(tc[0],tc[1],tc[2]);
-    doc.roundedRect(M,y-1,3,blockH-2,1,1,'F');
-    // Number badge
-    doc.setFillColor(tc[0],tc[1],tc[2],0.2);
-    doc.setFillColor(30,35,50);
-    doc.roundedRect(M+5,y+0.5,8,5.5,1,1,'F');
-    doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(tc[0],tc[1],tc[2]);
-    doc.text(t[0],M+9,y+4.5,{align:'center'});
-    // Title
-    doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(230,230,240);
-    doc.text(t[1],M+16,y+4.5);
-    y+=8;
-    // Detail
-    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(tc[0],tc[1],tc[2]);
-    wrappedDetail.forEach(ln=>{
-      doc.text(ln,M+6,y);
-      y+=4;
-    });
-    y+=3;
-  });
-
-  // ── Footer on every page ──
+  // ── Footer every page ──
   const pages=doc.getNumberOfPages();
   for(let p=1;p<=pages;p++){
     doc.setPage(p);
-    doc.setFillColor(15,17,26);
-    doc.rect(0,284,W,13,'F');
-    doc.setFillColor(201,168,76);
-    doc.rect(0,284,W,0.5,'F');
-    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(100,105,125);
-    doc.text('BuTLer — UK Buy-to-Let Tax Calculator 2025/26  |  gd7vibe.github.io/btl-calculator',M,290);
-    doc.text('Illustrative purposes only. Consult a qualified accountant before making decisions.  |  Page '+p+' of '+pages, W-M, 290,{align:'right'});
+    doc.setDrawColor(BORDER[0],BORDER[1],BORDER[2]);
+    doc.setLineWidth(0.3);
+    doc.line(M,287,W-M,287);
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(LIGHT[0],LIGHT[1],LIGHT[2]);
+    doc.text('BuTLer  |  gd7vibe.github.io/btl-calculator  |  For illustrative purposes only — consult a qualified accountant',M,291);
+    doc.text('Page '+p+' of '+pages,W-M,291,{align:'right'});
   }
 
   const filename='BuTLer-Report-'+now.getFullYear()+('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2)+'.pdf';
