@@ -420,240 +420,332 @@ function exportPDF(){
   const profitable = r.netCF > 0;
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
-
-  const gold='#c9a84c', dark='#0d0f18', mid='#1a1d27', light='#eaeaea', muted='#8a8fa8';
-  const green='#2d8a5e', red='#c04040';
-  const W=210, margin=16, col=W-margin*2;
-
+  const W=210, M=14, CW=W-M*2;
   let y=0;
 
-  // ── Header band ──
-  doc.setFillColor(22,25,35);
-  doc.rect(0,0,W,28,'F');
-  doc.setFontSize(22);doc.setFont('helvetica','bold');
-  doc.setTextColor(201,168,76);
-  doc.text('BuTLer',margin,18);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  doc.setTextColor(122,127,150);
-  doc.text('UK Buy-to-Let Tax Calculator  |  2025/26  |  Section 24',margin,24);
-  doc.setFontSize(9);doc.setTextColor(122,127,150);
-  doc.text('Report generated: '+dateStr, W-margin, 24, {align:'right'});
-  y=36;
+  // ── Helpers ──
+  function newPageIfNeeded(space){
+    if(y+space>278){doc.addPage();y=20;return true;}
+    return false;
+  }
 
-  // ── Cashflow hero box ──
-  doc.setFillColor(profitable?14:42, profitable?36:14, profitable?25:14);
-  doc.roundedRect(margin,y,col,22,3,3,'F');
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  doc.setTextColor(122,127,150);
-  doc.text('MONTHLY NET CASHFLOW AFTER TAX',W/2,y+7,{align:'center'});
-  doc.setFontSize(20);doc.setFont('helvetica','bold');
-  doc.setTextColor(profitable?45:192, profitable?186:64, profitable?130:64);
-  doc.text(fmt(r.netPCM), W/2, y+17, {align:'center'});
-  y+=28;
+  // Alternating row background
+  let rowIdx=0;
+  function dataRow(label,value,opts){
+    opts=opts||{};
+    newPageIfNeeded(7);
+    const h=opts.tall?8:6.5;
+    // Alternating background
+    if(rowIdx%2===0){
+      doc.setFillColor(24,27,38);
+      doc.rect(M,y-4,CW,h,'F');
+    }
+    rowIdx++;
+    // Left accent bar for bold rows
+    if(opts.bold){
+      doc.setFillColor(201,168,76);
+      doc.rect(M,y-4,2,h,'F');
+    }
+    const indent = opts.indent ? M+6 : M+3;
+    doc.setFontSize(opts.bold?8.5:7.5);
+    doc.setFont('helvetica',opts.bold?'bold':'normal');
+    doc.setTextColor(opts.bold?234:160, opts.bold?234:160, opts.bold?234:160);
+    doc.text(label, indent, y);
+    // Value colour
+    const vc = opts.color==='red'?[210,70,70]:opts.color==='green'?[61,186,130]:opts.color==='accent'?[201,168,76]:[234,234,234];
+    doc.setTextColor(vc[0],vc[1],vc[2]);
+    doc.setFont('helvetica',opts.bold?'bold':'normal');
+    doc.text(value, W-M-2, y, {align:'right'});
+    y+=h;
+  }
 
-  // Stats row
-  const stats=[
-    ['Annual Net Cashflow', fmt(r.netCF)],
-    ['Gross Yield', pct(r.grossYield)],
-    ['Net Yield', pct(r.netYield)],
-    ['Effective Tax Rate', pct(r.rentA>0?(r.tax/r.rentA)*100:0)]
-  ];
-  const sw=col/4;
-  stats.forEach((s,i)=>{
-    const x=margin+i*sw;
-    doc.setFillColor(22,25,35);
-    doc.roundedRect(x,y,sw-2,16,2,2,'F');
-    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(122,127,150);
-    doc.text(s[0],x+sw/2-1,y+6,{align:'center'});
-    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(201,168,76);
-    doc.text(s[1],x+sw/2-1,y+13,{align:'center'});
-  });
-  y+=22;
-
-  // ── Section helper ──
-  function section(title){
-    doc.setFillColor(30,33,45);
-    doc.rect(margin,y,col,8,'F');
+  function sectionHeader(title, color){
+    newPageIfNeeded(12);
+    rowIdx=0;
+    y+=3;
+    const cc = color||[91,141,238];
+    doc.setFillColor(cc[0],cc[1],cc[2],0.15);
+    doc.setFillColor(20,24,36);
+    doc.rect(M,y-5,CW,9,'F');
+    // Left accent
+    doc.setFillColor(cc[0],cc[1],cc[2]);
+    doc.rect(M,y-5,3,9,'F');
     doc.setFontSize(8);doc.setFont('helvetica','bold');
-    doc.setTextColor(91,141,238);
-    doc.text(title.toUpperCase(),margin+3,y+5.5);
-    y+=10;
+    doc.setTextColor(cc[0],cc[1],cc[2]);
+    doc.text(title.toUpperCase(), M+6, y);
+    y+=7;
   }
 
-  function row(label,value,bold,colored){
-    if(y>265){doc.addPage();y=16;}
-    const isRed=colored==='red', isGreen=colored==='green', isAccent=colored==='accent';
-    doc.setFontSize(bold?9:8);
-    doc.setFont('helvetica',bold?'bold':'normal');
-    doc.setTextColor(bold?234:180,bold?234:180,bold?234:180);
-    doc.text(label,margin+2,y);
-    doc.setTextColor(isRed?192:isGreen?61:isAccent?201:234, isRed?64:isGreen?186:isAccent?168:234, isRed?64:isGreen?130:isAccent?76:234);
-    doc.text(value,W-margin-2,y,{align:'right'});
-    y+=bold?6:5;
+  function hairline(){
+    doc.setDrawColor(50,55,70);doc.setLineWidth(0.2);
+    doc.line(M,y-1,W-M,y-1);
   }
 
-  function divider(){
-    doc.setDrawColor(37,40,54);doc.setLineWidth(0.3);
-    doc.line(margin,y,W-margin,y);y+=3;
+  function spacer(n){ y+=n||3; }
+
+  // ══ PAGE 1 ══════════════════════════════════════════════════
+
+  // Header bar
+  doc.setFillColor(15,17,26);
+  doc.rect(0,0,W,22,'F');
+  doc.setFillColor(201,168,76);
+  doc.rect(0,0,4,22,'F');
+  doc.setFontSize(18);doc.setFont('helvetica','bold');
+  doc.setTextColor(201,168,76);
+  doc.text('BuTLer',M+2,14);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.setTextColor(140,145,165);
+  doc.text('UK Buy-to-Let Tax Calculator  |  2025/26  |  Section 24',M+30,10);
+  doc.text('Report generated: '+dateStr, W-M, 10, {align:'right'});
+  doc.text('Property value: '+fmt(propVal)+'  |  Rent: '+fmt(rentPCM)+'/mo  |  Structure: '+(structure==='personal'?'Personal':'Ltd Company'), M+30,17);
+  y=30;
+
+  // Hero cashflow box
+  const heroH=26;
+  doc.setFillColor(profitable?12:38, profitable?32:12, profitable?22:12);
+  doc.roundedRect(M,y,CW,heroH,3,3,'F');
+  doc.setDrawColor(profitable?61:192, profitable?186:64, profitable?130:64);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(M,y,CW,heroH,3,3,'S');
+  doc.setFontSize(7.5);doc.setFont('helvetica','normal');
+  doc.setTextColor(130,135,155);
+  doc.text('MONTHLY NET CASHFLOW AFTER TAX', W/2, y+7, {align:'center'});
+  doc.setFontSize(22);doc.setFont('helvetica','bold');
+  doc.setTextColor(profitable?61:210, profitable?186:70, profitable?130:70);
+  doc.text(fmt(r.netPCM), W/2, y+18, {align:'center'});
+  doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.setTextColor(130,135,155);
+  doc.text(fmt(r.netCF)+' per year', W/2, y+24, {align:'center'});
+  y+=heroH+5;
+
+  // 4 stat boxes
+  const stats=[
+    ['Annual Net','Cashflow',fmt(r.netCF),'accent'],
+    ['Gross','Yield',pct(r.grossYield),r.grossYield>=5?'green':'accent'],
+    ['Net','Yield',pct(r.netYield),r.netYield>3?'green':r.netYield>0?'accent':'red'],
+    ['Effective','Tax Rate',pct(r.rentA>0?(r.tax/r.rentA)*100:0),'']
+  ];
+  const sw=CW/4;
+  stats.forEach((s,i)=>{
+    const x=M+i*sw;
+    doc.setFillColor(22,25,38);
+    doc.roundedRect(x+0.5,y,sw-2,18,2,2,'F');
+    const vc=s[3]==='green'?[61,186,130]:s[3]==='red'?[210,70,70]:[201,168,76];
+    doc.setDrawColor(vc[0],vc[1],vc[2]);
+    doc.setLineWidth(0.3);
+    doc.line(x+0.5+4,y+18,x+sw-2-4,y+18);
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(120,125,145);
+    doc.text(s[0], x+sw/2-0.5, y+6, {align:'center'});
+    doc.text(s[1], x+sw/2-0.5, y+10, {align:'center'});
+    doc.setFontSize(11);doc.setFont('helvetica','bold');
+    doc.setTextColor(vc[0],vc[1],vc[2]);
+    doc.text(s[2], x+sw/2-0.5, y+16.5, {align:'center'});
+  });
+  y+=24;
+
+  // ── Two column layout for inputs + expenses ──
+  const colL=M, colR=M+CW/2+3, colW=(CW-4)/2;
+
+  // Left col header
+  doc.setFillColor(20,24,36);
+  doc.rect(colL,y-1,colW,8,'F');
+  doc.setFillColor(91,141,238);doc.rect(colL,y-1,3,8,'F');
+  doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(91,141,238);
+  doc.text('PROPERTY & MORTGAGE', colL+5, y+4.5);
+
+  // Right col header
+  doc.setFillColor(20,24,36);
+  doc.rect(colR,y-1,colW,8,'F');
+  doc.setFillColor(91,141,238);doc.rect(colR,y-1,3,8,'F');
+  doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.setTextColor(91,141,238);
+  doc.text('ALLOWABLE EXPENSES', colR+5, y+4.5);
+  y+=10;
+
+  // Two column data
+  const leftRows=[
+    ['Monthly Rent', fmt(rentPCM)+'/mo'],
+    ['Property Value', fmt(propVal)],
+    ['Other Income', fmt(otherIncome)+'/yr'],
+    ['Mortgage Payment', fmt(mortPCM)+'/mo'],
+    ['Interest Rate', mortRate+'% p.a.'],
+    ['Mortgage Type', mortType==='io'?'Interest Only':'Repayment'],
+    ...(mortType==='repay'?[['Annual Interest', fmt(repayInt)+'/yr']]:[]),
+    ['Structure', structure==='personal'?'Personal':'Ltd Co'],
+  ];
+  const rightRows=[
+    ['Agent Fees', agentPct+'% ('+fmt(r.agentFees)+'/yr)'],
+    ['Insurance', fmt(insurePCM)+'/mo'],
+    ['Repairs', fmt(repairsPA)+'/yr'],
+    ['Ground Rent', fmt(groundPA)+'/yr'],
+    ['Other', fmt(otherExpPA)+'/yr'],
+    ['',''],
+    ['TOTAL EXPENSES', fmt(r.totalExp)+'/yr'],
+  ];
+  const maxRows=Math.max(leftRows.length,rightRows.length);
+  for(let i=0;i<maxRows;i++){
+    const rowH=6;
+    if(i%2===0){
+      doc.setFillColor(24,27,38);
+      doc.rect(colL,y-3.5,colW,rowH,'F');
+      doc.rect(colR,y-3.5,colW,rowH,'F');
+    }
+    if(i<leftRows.length){
+      const isBold=i===leftRows.length-1&&false;
+      doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(160,160,170);
+      doc.text(leftRows[i][0], colL+3, y);
+      doc.setTextColor(220,220,230);
+      doc.text(leftRows[i][1], colL+colW-1, y, {align:'right'});
+    }
+    if(i<rightRows.length){
+      const isTotal=rightRows[i][0]==='TOTAL EXPENSES';
+      doc.setFontSize(7);doc.setFont('helvetica',isTotal?'bold':'normal');
+      doc.setTextColor(isTotal?201:160,isTotal?168:160,isTotal?76:170);
+      doc.text(rightRows[i][0], colR+3, y);
+      doc.setTextColor(isTotal?201:220,isTotal?168:220,isTotal?76:230);
+      doc.text(rightRows[i][1], colR+colW-1, y, {align:'right'});
+    }
+    y+=rowH;
   }
+  spacer(4);
 
-  // ── Inputs ──
-  section('Property & Mortgage Inputs');
-  row('Monthly Rent', fmt(rentPCM)+'/mo');
-  row('Property Value', fmt(propVal));
-  row('Other Annual Income', fmt(otherIncome));
-  row('Monthly Mortgage Payment', fmt(mortPCM)+'/mo');
-  row('Interest Rate', mortRate+'% per annum');
-  row('Mortgage Type', mortType==='io'?'Interest Only':'Repayment');
-  if(mortType==='repay') row('Annual Interest Paid (from statement)', fmt(repayInt));
-  row('Ownership Structure', structure==='personal'?'Personal Name':'Limited Company');
-  y+=2;
-
-  section('Allowable Expenses');
-  row('Letting Agent Fees', agentPct+'% of rent ('+fmt(r.agentFees)+'/yr)');
-  row('Landlord Insurance', fmt(insurePCM)+'/mo ('+fmt(r.insure)+'/yr)');
-  row('Repairs & Maintenance', fmt(repairsPA)+'/yr');
-  row('Ground Rent / Service Charge', fmt(groundPA)+'/yr');
-  row('Other Expenses', fmt(otherExpPA)+'/yr');
-  divider();
-  row('Total Allowable Expenses', fmt(r.totalExp)+'/yr', true, 'accent');
-  y+=2;
-
-  section('Tax Calculation');
-  row('Gross Annual Rent', fmt(r.rentA),'','accent');
-  row('Less: Total Allowable Expenses', '-'+fmt(r.totalExp),'','red');
-  if(structure==='ltd') row('Less: Mortgage Interest', '-'+fmt(r.interestA),'','red');
-  divider();
-  row('Taxable Profit', fmt(r.taxableProfit),true,r.taxableProfit>0?'accent':'red');
-  y+=2;
+  // ── Tax Calculation ──
+  sectionHeader('Tax Calculation',[91,141,238]);
+  dataRow('Gross Annual Rent', fmt(r.rentA), {color:'accent',bold:false});
+  dataRow('Less: Total Allowable Expenses', '-'+fmt(r.totalExp), {color:'red',indent:true});
+  if(structure==='ltd') dataRow('Less: Mortgage Interest', '-'+fmt(r.interestA), {color:'red',indent:true});
+  hairline(); spacer(2);
+  dataRow('Taxable Profit', fmt(r.taxableProfit), {bold:true,color:r.taxableProfit>0?'accent':'red'});
+  spacer(1);
   if(structure==='personal'){
-    row('Marginal Income Tax Rate', r.marginalRate+'%');
-    row('Income Tax on Rental Profit', fmt(r.tax+r.taxCredit),'','red');
-    row('Section 24 Tax Credit (20% of interest)', '-'+fmt(r.taxCredit),'','green');
-    divider();
-    row('Net Tax Liability', fmt(r.tax),true,'red');
-    if(r.s24Penalty>0) row('Section 24 extra cost vs pre-2017', fmt(r.s24Penalty)+'/yr ('+fmt(r.s24Penalty/12)+'/mo)','','red');
+    dataRow('Marginal Income Tax Rate', r.marginalRate+'%');
+    dataRow('Income Tax on Rental Profit', fmt(r.tax+r.taxCredit), {color:'red'});
+    dataRow('Section 24 Tax Credit (20% of interest)', '-'+fmt(r.taxCredit), {color:'green'});
+    hairline(); spacer(2);
+    dataRow('Net Tax Liability', fmt(r.tax), {bold:true,color:'red'});
+    if(r.s24Penalty>0){
+      spacer(1);
+      dataRow('Section 24 extra cost vs pre-2017 rules', fmt(r.s24Penalty)+'/yr', {color:'red'});
+    }
   } else {
-    row('Corporation Tax', fmt(r.corpTax),true,'red');
+    dataRow('Corporation Tax (19-25%)', fmt(r.corpTax), {bold:true,color:'red'});
   }
-  y+=2;
+  spacer(2);
 
-  section('Cashflow Summary');
-  row('Gross Annual Rent', fmt(r.rentA));
-  row('Mortgage Payments', '-'+fmt(r.mortA),'','red');
-  row('Running Expenses', '-'+fmt(r.totalExp),'','red');
-  divider();
-  row('Gross Cashflow (pre-tax)', fmt(r.grossCF),false,r.grossCF>0?'accent':'red');
-  row('Tax', '-'+fmt(r.tax),'','red');
-  divider();
-  row('Net Annual Cashflow', fmt(r.netCF),true,profitable?'green':'red');
-  row('Net Monthly Cashflow', fmt(r.netPCM),true,profitable?'green':'red');
-  y+=2;
+  // ── Cashflow Summary ──
+  sectionHeader('Cashflow Summary',[91,141,238]);
+  dataRow('Gross Annual Rent', fmt(r.rentA));
+  dataRow('Mortgage Payments', '-'+fmt(r.mortA), {color:'red',indent:true});
+  dataRow('Running Expenses', '-'+fmt(r.totalExp), {color:'red',indent:true});
+  hairline(); spacer(2);
+  dataRow('Gross Cashflow (pre-tax)', fmt(r.grossCF), {color:r.grossCF>0?'accent':'red'});
+  dataRow('Tax Liability', '-'+fmt(r.tax), {color:'red',indent:true});
+  hairline(); spacer(2);
+  dataRow('Net Annual Cashflow', fmt(r.netCF), {bold:true,color:profitable?'green':'red',tall:true});
+  dataRow('Net Monthly Cashflow', fmt(r.netPCM), {bold:true,color:profitable?'green':'red',tall:true});
+  spacer(2);
 
-  section('Key Ratios & Break-Even');
-  row('Gross Yield', pct(r.grossYield));
-  row('Net Yield (after all costs & tax)', pct(r.netYield));
-  row('Mortgage as % of Rent', pct((r.mortA/r.rentA)*100));
-  row('Break-Even Mortgage (PCM)', fmt(r.beMortPCM)+'/mo ('+pct(r.beMortPct)+' of rent)',true,'accent');
+  // ── Key Ratios ──
+  sectionHeader('Key Ratios & Break-Even',[201,168,76]);
+  dataRow('Gross Yield', pct(r.grossYield), {color:r.grossYield>=5?'green':'accent'});
+  dataRow('Net Yield (after all costs and tax)', pct(r.netYield), {color:r.netYield>3?'green':r.netYield>0?'accent':'red'});
+  dataRow('Mortgage as % of Rent', pct((r.mortA/r.rentA)*100));
+  dataRow('Break-Even Mortgage (PCM)', fmt(r.beMortPCM)+'/mo  ('+pct(r.beMortPct)+' of rent)', {bold:true,color:'accent',tall:true});
+  spacer(2);
+
+  // ── Ltd Comparison ──
   if(r.ltdSaving!==null && structure==='personal'){
-    y+=2;
-    section('Ltd Company Comparison');
-    row('Current net cashflow (personal)', fmt(r.netCF));
-    row('Estimated net cashflow (Ltd)', fmt(r.netCF+r.ltdSaving),'',r.ltdSaving>0?'green':'red');
-    row('Estimated annual saving from Ltd', fmt(r.ltdSaving),true,r.ltdSaving>0?'green':'red');
+    sectionHeader('Ltd Company vs Personal Ownership',[61,186,130]);
+    dataRow('Current net cashflow (personal name)', fmt(r.netCF));
+    dataRow('Estimated net cashflow (limited company)', fmt(r.netCF+r.ltdSaving), {color:r.ltdSaving>0?'green':'red'});
+    hairline(); spacer(2);
+    dataRow('Estimated annual saving from Ltd structure', fmt(r.ltdSaving), {bold:true,color:r.ltdSaving>0?'green':'red',tall:true});
+    spacer(2);
   }
 
-  // ── Health check ──
-  if(y>240){doc.addPage();y=16;}
-  y+=2;
-  section('Health Check');
+  // ── Health Check ──
+  sectionHeader('Health Check',[201,168,76]);
   const checks=[
-    {l:'Expenses > 5% of rent', ok:r.totalExp>r.rentA*.05},
-    {l:'Mortgage < 70% of rent', ok:r.mortA/r.rentA<.70},
-    {l:'Gross yield >= 5%', ok:r.grossYield>=5},
-    {l:'Net cashflow positive', ok:r.netCF>0},
-    {l:'Ownership structure optimised', ok:structure==='ltd'||r.marginalRate<=20}
+    {l:'Expenses are greater than 5% of rent', ok:r.totalExp>r.rentA*.05},
+    {l:'Mortgage is less than 70% of rent', ok:r.mortA/r.rentA<.70},
+    {l:'Gross yield is 5% or above', ok:r.grossYield>=5},
+    {l:'Net cashflow is positive after tax', ok:r.netCF>0},
+    {l:'Ownership structure is optimised for tax', ok:structure==='ltd'||r.marginalRate<=20}
   ];
   checks.forEach(ch=>{
-    if(y>270){doc.addPage();y=16;}
-    doc.setFontSize(8);doc.setFont('helvetica','normal');
-    doc.setTextColor(ch.ok?61:192,ch.ok?186:64,ch.ok?130:64);
-    doc.text((ch.ok?'✓ ':'✗ ')+ch.l,margin+2,y);
-    y+=5;
+    newPageIfNeeded(7);
+    rowIdx++;
+    if(rowIdx%2===0){doc.setFillColor(24,27,38);doc.rect(M,y-4,CW,6.5,'F');}
+    // Coloured dot instead of tick/cross
+    doc.setFillColor(ch.ok?61:210, ch.ok?186:70, ch.ok?130:70);
+    doc.circle(M+5, y-1, 1.8, 'F');
+    doc.setFontSize(8);doc.setFont('helvetica',ch.ok?'normal':'normal');
+    doc.setTextColor(ch.ok?200:180, ch.ok?230:180, ch.ok?200:180);
+    doc.text((ch.ok?'PASS':'FAIL')+'  '+ch.l, M+10, y);
+    doc.setTextColor(ch.ok?61:210,ch.ok?186:70,ch.ok?130:70);
+    doc.text(ch.ok?'YES':'NO', W-M-2, y, {align:'right'});
+    y+=6.5;
   });
+  spacer(3);
 
   // ── Optimisation Actions ──
-  if(y>230){doc.addPage();y=16;} else y+=2;
-  section('Optimisation Actions');
+  sectionHeader('Optimisation Actions',[91,141,238]);
 
-  // Helper to wrap long text
-  function optRow(num, title, detail, type){
-    if(y>265){doc.addPage();y=16;}
-    const typeColor = type==='warn'?[224,138,42]:type==='good'?[61,186,130]:[91,141,238];
-    // Number + title
-    doc.setFontSize(8);doc.setFont('helvetica','bold');
-    doc.setTextColor(201,168,76);
-    doc.text(num, margin+2, y);
-    doc.setTextColor(234,234,234);
-    doc.text(title, margin+10, y);
-    y+=5;
-    // Detail text wrapped
-    doc.setFontSize(7);doc.setFont('helvetica','normal');
-    doc.setTextColor(typeColor[0],typeColor[1],typeColor[2]);
-    const lines = doc.splitTextToSize(detail, col-12);
-    lines.forEach(line=>{
-      if(y>272){doc.addPage();y=16;}
-      doc.text(line, margin+10, y);
+  const optTips=[
+    ['01','Maximise Allowable Expenses','Every pound of legitimate expense cuts taxable profit directly. Claim: agent fees, all insurance, repairs, accountancy, mileage to inspect property, phone costs (pro-rated), cleaning between tenancies, advertising and inventory checks.','good'],
+    ['02','Replacement of Domestic Items (RDIR)','Replacing sofas, white goods, carpets, curtains and beds — the replacement cost is fully deductible. The original purchase is NOT. Keep every receipt.','info'],
+    ['03','Repairs vs Capital Improvements','Repairs are fully deductible now. Improvements are not deductible against income (but reduce CGT on sale). Like-for-like boiler = repair. Loft conversion = improvement. HMRC scrutinise this distinction hard.','warn'],
+    ...(structure==='personal'&&r.marginalRate>=40?[['04','Incorporate into a Limited Company (SPV)','You are a '+r.marginalRate+'% taxpayer getting only 20% interest relief. Incorporation restores full mortgage interest deductibility. Transfer costs: SDLT on market value plus potential CGT. For new purchases always use Ltd from day one.','warn']]:[] ),
+    ['05','Interest-Only Mortgage Advantage','With interest-only, 100% of your monthly payment qualifies for the Section 24 tax credit. With a repayment mortgage the capital portion gets zero relief — it builds equity but does nothing on your tax bill.','info'],
+    ['06','Mortgage Arrangement Fees','Arrangement and broker fees are fully deductible as allowable expenses — unlike the interest itself. Claim in full in the year paid, or amortise if the lender adds them to the loan.','good'],
+    ['07','Personal Allowance Trap (above £100k)','Above £100k total income you lose £1 of personal allowance per £2 earned, creating a 60% effective marginal rate. Section 24 inflates your taxable profit and can push you over this threshold even on modest real cash profit.','warn'],
+    ['08','Loss Carry Forward','Tax losses in any year carry forward indefinitely against future rental profits. They cannot offset other income such as salary. Track void periods and heavy repair years carefully.','info'],
+    ['09','Making Tax Digital (MTD)','From April 2026: mandatory quarterly digital submissions to HMRC for gross rental income above £50k. Get compliant software now — Landlord Studio, Xero or QuickBooks Property all support MTD.','warn'],
+    ['10','Capital Gains Tax on Sale','CGT rates: 18% (basic rate) or 24% (higher rate) on residential gains. Annual exempt amount is £3,000 for 2025/26. Consider timing the sale in a low-income year, gifting to a lower-rate spouse, or using a Ltd company structure. No main residence relief on BTL.','info'],
+  ];
+
+  optTips.forEach(t=>{
+    const tc=t[3]==='warn'?[224,138,42]:t[3]==='good'?[61,186,130]:[91,141,238];
+    const wrappedDetail = doc.splitTextToSize(t[2], CW-12);
+    const blockH = 7 + wrappedDetail.length*4 + 3;
+    newPageIfNeeded(blockH);
+    // Block background
+    doc.setFillColor(20,23,34);
+    doc.roundedRect(M,y-1,CW,blockH-2,2,2,'F');
+    // Left colour bar
+    doc.setFillColor(tc[0],tc[1],tc[2]);
+    doc.roundedRect(M,y-1,3,blockH-2,1,1,'F');
+    // Number badge
+    doc.setFillColor(tc[0],tc[1],tc[2],0.2);
+    doc.setFillColor(30,35,50);
+    doc.roundedRect(M+5,y+0.5,8,5.5,1,1,'F');
+    doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(tc[0],tc[1],tc[2]);
+    doc.text(t[0],M+9,y+4.5,{align:'center'});
+    // Title
+    doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(230,230,240);
+    doc.text(t[1],M+16,y+4.5);
+    y+=8;
+    // Detail
+    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(tc[0],tc[1],tc[2]);
+    wrappedDetail.forEach(ln=>{
+      doc.text(ln,M+6,y);
       y+=4;
     });
-    y+=2;
-  }
+    y+=3;
+  });
 
-  optRow('01','Maximise Allowable Expenses',
-    'Every pound of legitimate expense cuts taxable profit directly. Claim: agent fees, all insurance, repairs, accountancy, mileage to inspect property, phone costs (pro-rated), cleaning between tenancies, advertising and inventory checks.',
-    'good');
-  optRow('02','Replacement of Domestic Items Relief (RDIR)',
-    'Replacing sofas, white goods, carpets, curtains and beds — the replacement cost is fully deductible. The original purchase is NOT. Keep every receipt.',
-    'info');
-  optRow('03','Repairs vs Capital Improvements',
-    'Repairs are fully deductible now. Improvements are not deductible against income (but reduce CGT on sale). Like-for-like boiler = repair. Loft conversion = improvement. HMRC scrutinise this distinction hard.',
-    'warn');
-  if(structure==='personal' && r.marginalRate>=40){
-    optRow('04','Incorporate into a Limited Company (SPV)',
-      'You are a '+r.marginalRate+'% taxpayer getting only 20% interest relief under Section 24. Incorporation restores full mortgage interest deductibility. Transfer costs include SDLT on market value plus potential CGT. For new purchases — always use Ltd from day one.',
-      'warn');
-  }
-  optRow('05','Interest-Only Mortgage Advantage',
-    'With interest-only, 100% of your monthly payment qualifies for the Section 24 tax credit. With a repayment mortgage, the capital repayment portion gets zero relief — it builds equity but gives nothing on your tax bill.',
-    'info');
-  optRow('06','Mortgage Arrangement Fees',
-    'Arrangement and broker fees ARE fully deductible as allowable expenses — unlike the interest itself. Claim in full in the year paid, or amortise if the lender adds them to the loan.',
-    'good');
-  optRow('07','Personal Allowance Trap (above £100k)',
-    'Above £100k total income you lose £1 of personal allowance per £2 earned — creating a 60% effective marginal rate. Section 24 inflates your taxable rental profit and can push you over this threshold even when your real cash profit is modest.',
-    'warn');
-  optRow('08','Loss Carry Forward',
-    'Tax losses in any year carry forward indefinitely against future rental profits. They cannot offset other income such as salary. Track void periods and heavy repair years carefully.',
-    'info');
-  optRow('09','Making Tax Digital (MTD)',
-    'From April 2026: mandatory quarterly digital submissions to HMRC for gross rental income above £50k. Get compliant software now — Landlord Studio, Xero or QuickBooks Property all support MTD.',
-    'warn');
-  optRow('10','Capital Gains Tax on Sale',
-    'CGT rates: 18% (basic rate) or 24% (higher rate) on residential property gains. Annual exempt amount is £3,000 for 2025/26. Consider timing the sale in a low-income year, gifting to a lower-rate spouse, or using a Ltd company structure. No main residence relief applies to buy-to-let property.',
-    'info');
-
-  // ── Footer ──
+  // ── Footer on every page ──
   const pages=doc.getNumberOfPages();
   for(let p=1;p<=pages;p++){
     doc.setPage(p);
-    doc.setFillColor(22,25,35);
-    doc.rect(0,285,W,12,'F');
-    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(122,127,150);
-    doc.text('BuTLer — UK Buy-to-Let Tax Calculator 2025/26 | gd7vibe.github.io/btl-calculator',margin,291);
-    doc.text('For illustrative purposes only. Consult a qualified accountant before making decisions.  Page '+p+' of '+pages,W-margin,291,{align:'right'});
+    doc.setFillColor(15,17,26);
+    doc.rect(0,284,W,13,'F');
+    doc.setFillColor(201,168,76);
+    doc.rect(0,284,W,0.5,'F');
+    doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(100,105,125);
+    doc.text('BuTLer — UK Buy-to-Let Tax Calculator 2025/26  |  gd7vibe.github.io/btl-calculator',M,290);
+    doc.text('Illustrative purposes only. Consult a qualified accountant before making decisions.  |  Page '+p+' of '+pages, W-M, 290,{align:'right'});
   }
 
-  // ── Save ──
   const filename='BuTLer-Report-'+now.getFullYear()+('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2)+'.pdf';
   doc.save(filename);
 }
