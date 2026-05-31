@@ -512,8 +512,9 @@ function exportPDF(){
   doc.text('BuTLer', M+2, 12);
   doc.setFontSize(8);doc.setFont('helvetica','normal');
   doc.setTextColor(200,202,210);
-  doc.text('UK Buy-to-Let Tax Calculator  |  2025/26  |  Section 24', M+22, 8);
-  doc.text('Report: '+dateStr+'  |  '+fmt(propVal)+'  |  '+fmt(rentPCM)+'/mo  |  '+(structure==='personal'?'Personal Name':'Ltd Company'), M+22, 14);
+  doc.text('UK Buy-to-Let Tax Calculator  |  2025/26  |  Section 24', M+22, 10);
+  doc.setFontSize(7);doc.setTextColor(140,145,160);
+  doc.text('Report generated: '+dateStr, W-M, 10, {align:'right'});
   y=24;
 
   // ── Hero ──
@@ -591,7 +592,6 @@ function exportPDF(){
     ['Repairs & Maintenance', fmt(repairsPA)+'/yr'],
     ['Ground Rent / Service', fmt(groundPA)+'/yr'],
     ['Other Expenses', fmt(otherExpPA)+'/yr'],
-    ['─────────────', '──────────'],
     ['TOTAL EXPENSES', fmt(r.totalExp)+'/yr'],
   ];
   const maxR=Math.max(lRows.length,rRows.length);
@@ -764,7 +764,7 @@ function exportPDF(){
   doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(GOLD[0],GOLD[1],GOLD[2]);
   doc.text('BuTLer', M+2, 8.5);
   doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(190,195,205);
-  doc.text('Optimisation Actions  |  '+dateStr, M+18, 8.5);
+  doc.text('UK Buy-to-Let Tax Calculator  |  Optimisation Actions', M+18, 8.5);
   y=18;
 
   secHead('Optimisation Actions for Your Property', BLUE);
